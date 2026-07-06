@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.aurowall</groupId>
-    <artifactId>aurowall-backend</artifactId>
+    <groupId>com.icezhg</groupId>
+    <artifactId>sky-pivot</artifactId>
     <version>1.0.0</version>
-    <name>AuroWall Backend</name>
-    <description>AuroWall - Zero-trust password manager backend with E2E encryption</description>
+    <name>Sky Pivot Backend</name>
+    <description>Sky Pivot - Zero-trust password manager backend with E2E encryption</description>
 
     <properties>
         <java.version>21</java.version>
