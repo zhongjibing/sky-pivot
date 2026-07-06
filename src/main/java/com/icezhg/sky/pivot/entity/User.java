@@ -1,6 +1,9 @@
 package com.icezhg.sky.pivot.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -8,6 +11,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "users", indexes = {
     @Index(name = "idx_users_openid", columnList = "openid", unique = true),
     @Index(name = "idx_users_status", columnList = "status")
@@ -59,57 +64,14 @@ public class User {
     private Integer status = 0;
 
     @CreatedDate
+    @Setter(AccessLevel.NONE)
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
+    @Setter(AccessLevel.NONE)
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getOpenid() { return openid; }
-    public void setOpenid(String openid) { this.openid = openid; }
-
-    public String getNickname() { return nickname; }
-    public void setNickname(String nickname) { this.nickname = nickname; }
-
-    public String getAvatarUrl() { return avatarUrl; }
-    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
-
-    public String getMasterPasswordSalt() { return masterPasswordSalt; }
-    public void setMasterPasswordSalt(String masterPasswordSalt) { this.masterPasswordSalt = masterPasswordSalt; }
-
-    public String getMasterPasswordHash() { return masterPasswordHash; }
-    public void setMasterPasswordHash(String masterPasswordHash) { this.masterPasswordHash = masterPasswordHash; }
-
-    public LocalDateTime getLastMasterPasswordVerifiedAt() { return lastMasterPasswordVerifiedAt; }
-    public void setLastMasterPasswordVerifiedAt(LocalDateTime lastMasterPasswordVerifiedAt) { this.lastMasterPasswordVerifiedAt = lastMasterPasswordVerifiedAt; }
-
-    public String getEncryptedDek() { return encryptedDek; }
-    public void setEncryptedDek(String encryptedDek) { this.encryptedDek = encryptedDek; }
-
-    public String getKekVerification() { return kekVerification; }
-    public void setKekVerification(String kekVerification) { this.kekVerification = kekVerification; }
-
-    public String getBiometricTokenSalt() { return biometricTokenSalt; }
-    public void setBiometricTokenSalt(String biometricTokenSalt) { this.biometricTokenSalt = biometricTokenSalt; }
-
-    public String getEncryptedKekForBiometric() { return encryptedKekForBiometric; }
-    public void setEncryptedKekForBiometric(String encryptedKekForBiometric) { this.encryptedKekForBiometric = encryptedKekForBiometric; }
-
-    public Long getSyncVersion() { return syncVersion; }
-    public void setSyncVersion(Long syncVersion) { this.syncVersion = syncVersion; }
-
-    public LocalDateTime getLastSyncAt() { return lastSyncAt; }
-    public void setLastSyncAt(LocalDateTime lastSyncAt) { this.lastSyncAt = lastSyncAt; }
-
-    public Integer getStatus() { return status; }
-    public void setStatus(Integer status) { this.status = status; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public boolean isMasterPasswordSet() {
         return masterPasswordSalt != null && masterPasswordHash != null;
