@@ -1,10 +1,11 @@
 package com.icezhg.sky.pivot.scheduler;
 
+import com.icezhg.sky.pivot.config.properties.LoginHistoryProperties;
+import com.icezhg.sky.pivot.config.properties.TrashProperties;
 import com.icezhg.sky.pivot.repository.LoginHistoryRepository;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +24,12 @@ public class ScheduledTasks {
 
     public ScheduledTasks(PasswordRepository passwordRepository,
                           LoginHistoryRepository loginHistoryRepository,
-                          @Value("${app.trash.retention-days:30}") int trashRetentionDays,
-                          @Value("${app.login-history.retention-months:12}") int loginHistoryRetentionMonths) {
+                          TrashProperties trashProperties,
+                          LoginHistoryProperties loginHistoryProperties) {
         this.passwordRepository = passwordRepository;
         this.loginHistoryRepository = loginHistoryRepository;
-        this.trashRetentionDays = trashRetentionDays;
-        this.loginHistoryRetentionMonths = loginHistoryRetentionMonths;
+        this.trashRetentionDays = trashProperties.getRetentionDays();
+        this.loginHistoryRetentionMonths = loginHistoryProperties.getRetentionMonths();
     }
 
     @Scheduled(cron = "0 0 2 * * ?")

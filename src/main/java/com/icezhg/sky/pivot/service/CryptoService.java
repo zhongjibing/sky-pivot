@@ -1,6 +1,6 @@
 package com.icezhg.sky.pivot.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.icezhg.sky.pivot.config.properties.CryptoProperties;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
@@ -24,16 +24,16 @@ public class CryptoService {
     private static final int GCM_TAG_LENGTH = 128;
     private static final String VERIFICATION_PLAIN = "VERIFIED";
 
+    private final int pbkdf2Iterations;
+    private final int pbkdf2KeyLength;
+    private final int bcryptCost;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${app.crypto.pbkdf2-iterations:600000}")
-    private int pbkdf2Iterations;
-
-    @Value("${app.crypto.pbkdf2-key-length:256}")
-    private int pbkdf2KeyLength;
-
-    @Value("${app.crypto.bcrypt-cost:12}")
-    private int bcryptCost;
+    public CryptoService(CryptoProperties cryptoProperties) {
+        this.pbkdf2Iterations = cryptoProperties.getPbkdf2Iterations();
+        this.pbkdf2KeyLength = cryptoProperties.getPbkdf2KeyLength();
+        this.bcryptCost = cryptoProperties.getBcryptCost();
+    }
 
     public byte[] generateSalt(int length) {
         byte[] salt = new byte[length];

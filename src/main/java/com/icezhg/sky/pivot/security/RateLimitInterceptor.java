@@ -2,11 +2,11 @@ package com.icezhg.sky.pivot.security;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.icezhg.sky.pivot.config.properties.SecurityProperties;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import tools.jackson.databind.json.JsonMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -20,13 +20,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final int maxRequests;
     private final JsonMapper objectMapper = JsonMapper.builder().build();
 
-    public RateLimitInterceptor(
-        @Value("${app.security.rate-limit:100}") int maxRequests,
-        @Value("${app.security.rate-limit-window-seconds:60}") int windowSeconds
-    ) {
-        this.maxRequests = maxRequests;
+    public RateLimitInterceptor(SecurityProperties securityProperties) {
+        this.maxRequests = securityProperties.getRateLimit();
         this.rateLimitCache = Caffeine.newBuilder()
-            .expireAfterWrite(windowSeconds, TimeUnit.SECONDS)
+            .expireAfterWrite(securityProperties.getRateLimitWindowSeconds(), TimeUnit.SECONDS)
             .maximumSize(100000)
             .build();
     }

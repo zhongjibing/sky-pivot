@@ -2,7 +2,7 @@ package com.icezhg.sky.pivot.security;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.beans.factory.annotation.Value;
+import com.icezhg.sky.pivot.config.properties.SecurityProperties;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -14,11 +14,9 @@ public class TemporaryTokenService {
 
     private final Cache<String, TokenData> tokenCache;
 
-    public TemporaryTokenService(
-        @Value("${app.security.token-expiry-seconds:60}") int expirySeconds
-    ) {
+    public TemporaryTokenService(SecurityProperties securityProperties) {
         this.tokenCache = Caffeine.newBuilder()
-            .expireAfterWrite(expirySeconds, TimeUnit.SECONDS)
+            .expireAfterWrite(securityProperties.getTokenExpirySeconds(), TimeUnit.SECONDS)
             .maximumSize(10000)
             .build();
     }

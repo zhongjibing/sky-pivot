@@ -1,8 +1,8 @@
 package com.icezhg.sky.pivot.service;
 
+import com.icezhg.sky.pivot.config.properties.CryptoProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -12,10 +12,11 @@ class CryptoServiceTest {
 
     @BeforeEach
     void setUp() {
-        cryptoService = new CryptoService();
-        ReflectionTestUtils.setField(cryptoService, "pbkdf2Iterations", 600000);
-        ReflectionTestUtils.setField(cryptoService, "pbkdf2KeyLength", 256);
-        ReflectionTestUtils.setField(cryptoService, "bcryptCost", 12);
+        CryptoProperties cryptoProperties = new CryptoProperties();
+        cryptoProperties.setPbkdf2Iterations(600000);
+        cryptoProperties.setPbkdf2KeyLength(256);
+        cryptoProperties.setBcryptCost(12);
+        cryptoService = new CryptoService(cryptoProperties);
     }
 
     @Test

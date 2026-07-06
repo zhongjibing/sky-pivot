@@ -1,10 +1,10 @@
 package com.icezhg.sky.pivot.service;
 
+import com.icezhg.sky.pivot.config.properties.WeChatProperties;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,20 +22,19 @@ public class WeChatService {
     private static final String PC_QRCODE_URL =
         "https://open.weixin.qq.com/connect/qrconnect?appid={appid}&redirect_uri={redirectUri}&response_type=code&scope=snsapi_login&state={state}#wechat_redirect";
 
-    @Value("${app.wechat.appid:}")
-    private String miniAppId;
-
-    @Value("${app.wechat.secret:}")
-    private String miniAppSecret;
-
-    @Value("${app.wechat.pc-appid:}")
-    private String pcAppId;
-
-    @Value("${app.wechat.pc-secret:}")
-    private String pcSecret;
-
+    private final String miniAppId;
+    private final String miniAppSecret;
+    private final String pcAppId;
+    private final String pcSecret;
     private final RestTemplate restTemplate = new RestTemplate();
     private final JsonMapper objectMapper = JsonMapper.builder().build();
+
+    public WeChatService(WeChatProperties weChatProperties) {
+        this.miniAppId = weChatProperties.getAppid();
+        this.miniAppSecret = weChatProperties.getSecret();
+        this.pcAppId = weChatProperties.getPcAppid();
+        this.pcSecret = weChatProperties.getPcSecret();
+    }
 
     public String getMiniAppOpenId(String code) {
         try {

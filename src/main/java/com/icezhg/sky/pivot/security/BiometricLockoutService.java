@@ -2,7 +2,7 @@ package com.icezhg.sky.pivot.security;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.beans.factory.annotation.Value;
+import com.icezhg.sky.pivot.config.properties.SecurityProperties;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -13,13 +13,10 @@ public class BiometricLockoutService {
     private final Cache<Long, Integer> failureCount;
     private final int maxFailures;
 
-    public BiometricLockoutService(
-        @Value("${app.security.biometric-max-failures:3}") int maxFailures,
-        @Value("${app.security.biometric-lockout-minutes:5}") int lockoutMinutes
-    ) {
-        this.maxFailures = maxFailures;
+    public BiometricLockoutService(SecurityProperties securityProperties) {
+        this.maxFailures = securityProperties.getBiometricMaxFailures();
         this.failureCount = Caffeine.newBuilder()
-            .expireAfterWrite(lockoutMinutes, TimeUnit.MINUTES)
+            .expireAfterWrite(securityProperties.getBiometricLockoutMinutes(), TimeUnit.MINUTES)
             .maximumSize(10000)
             .build();
     }

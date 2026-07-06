@@ -1,12 +1,12 @@
 package com.icezhg.sky.pivot.service;
 
+import com.icezhg.sky.pivot.config.properties.TrashProperties;
 import com.icezhg.sky.pivot.dto.PasswordDetailResponse;
 import com.icezhg.sky.pivot.dto.TrashItemResponse;
 import com.icezhg.sky.pivot.entity.Password;
 import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import com.icezhg.sky.pivot.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +26,11 @@ public class TrashService {
     public TrashService(PasswordRepository passwordRepository,
                         UserRepository userRepository,
                         CryptoService cryptoService,
-                        @Value("${app.trash.retention-days:30}") int retentionDays) {
+                        TrashProperties trashProperties) {
         this.passwordRepository = passwordRepository;
         this.userRepository = userRepository;
         this.cryptoService = cryptoService;
-        this.retentionDays = retentionDays;
+        this.retentionDays = trashProperties.getRetentionDays();
     }
 
     public List<TrashItemResponse> listTrash(Long userId) {

@@ -1,8 +1,8 @@
 package com.icezhg.sky.pivot.security;
 
+import com.icezhg.sky.pivot.config.properties.JwtProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -15,14 +15,11 @@ import java.util.Date;
 public class JwtService {
 
     private final SecretKey key;
+    private final int miniappExpiryDays;
+    private final int pcExpiryHours;
 
-    @Value("${app.jwt.miniapp-expiry-days:7}")
-    private int miniappExpiryDays;
-
-    @Value("${app.jwt.pc-expiry-hours:2}")
-    private int pcExpiryHours;
-
-    public JwtService(@Value("${app.jwt.secret}") String secret) {
+    public JwtService(JwtProperties jwtProperties) {
+        String secret = jwtProperties.getSecret();
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             byte[] padded = new byte[32];
@@ -30,6 +27,8 @@ public class JwtService {
             keyBytes = padded;
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.miniappExpiryDays = jwtProperties.getMiniappExpiryDays();
+        this.pcExpiryHours = jwtProperties.getPcExpiryHours();
     }
 
     public String issueMiniAppToken(Long userId) {
