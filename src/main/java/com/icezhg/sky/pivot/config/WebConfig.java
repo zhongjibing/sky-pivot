@@ -1,5 +1,6 @@
 package com.icezhg.sky.pivot.config;
 
+import com.icezhg.sky.pivot.security.JwtAuthInterceptor;
 import com.icezhg.sky.pivot.security.RateLimitInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -10,9 +11,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final JwtAuthInterceptor jwtAuthInterceptor;
 
-    public WebConfig(RateLimitInterceptor rateLimitInterceptor) {
+    public WebConfig(RateLimitInterceptor rateLimitInterceptor, JwtAuthInterceptor jwtAuthInterceptor) {
         this.rateLimitInterceptor = rateLimitInterceptor;
+        this.jwtAuthInterceptor = jwtAuthInterceptor;
     }
 
     @Override
@@ -30,6 +33,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(jwtAuthInterceptor)
+                .addPathPatterns("/api/**");
         registry.addInterceptor(rateLimitInterceptor)
             .addPathPatterns("/api/**");
     }

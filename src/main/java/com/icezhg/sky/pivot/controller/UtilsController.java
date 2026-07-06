@@ -5,12 +5,9 @@ import com.icezhg.sky.pivot.dto.PasswordGenerateRequest;
 import com.icezhg.sky.pivot.dto.PasswordGenerateResponse;
 import com.icezhg.sky.pivot.dto.PasswordStrengthRequest;
 import com.icezhg.sky.pivot.dto.PasswordStrengthResponse;
-import com.icezhg.sky.pivot.security.JwtService;
 import com.icezhg.sky.pivot.service.HealthService;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,19 +26,14 @@ public class UtilsController {
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final HealthService healthService;
-    private final JwtService jwtService;
 
-    public UtilsController(HealthService healthService, JwtService jwtService) {
+    public UtilsController(HealthService healthService) {
         this.healthService = healthService;
-        this.jwtService = jwtService;
     }
 
     @PostMapping("/generate-password")
     public ApiResponse<PasswordGenerateResponse> generatePassword(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody PasswordGenerateRequest request) {
-        jwtService.validateToken(extractToken(authHeader));
-
         if (!request.uppercase() && !request.lowercase() && !request.digits() && !request.special()) {
             return ApiResponse.error(400, "At least one character type must be selected");
         }
@@ -84,10 +76,7 @@ public class UtilsController {
 
     @PostMapping("/check-strength")
     public ApiResponse<PasswordStrengthResponse> checkStrength(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody PasswordStrengthRequest request) {
-        jwtService.validateToken(extractToken(authHeader));
-
         HealthService.HealthResult result = healthService.checkHealth(request.password());
         return ApiResponse.success(new PasswordStrengthResponse(result.score(), result.level()));
     }
@@ -99,12 +88,5 @@ public class UtilsController {
             array[i] = array[j];
             array[j] = temp;
         }
-    }
-
-    private String extractToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        throw new RuntimeException("Missing or invalid Authorization header");
     }
 }
