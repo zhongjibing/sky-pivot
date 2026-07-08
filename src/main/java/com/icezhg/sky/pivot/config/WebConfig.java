@@ -34,7 +34,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtAuthInterceptor)
-                .addPathPatterns("/api/**");
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/miniapp/login",
+                        "/api/pc/login/qrcode",
+                        "/api/pc/login/status/**",
+                        "/api/pc/login/confirm"
+                );
         registry.addInterceptor(rateLimitInterceptor)
             .addPathPatterns("/api/**");
     }
