@@ -30,7 +30,7 @@ public class AccountService {
     public AccountDeletePreviewResponse previewDeletion(Long userId) {
         long totalPasswords = passwordRepository.findByUserId(userId, org.springframework.data.domain.Pageable.unpaged()).getTotalElements();
         long trashedPasswords = passwordRepository.findTrashByUserId(userId).size();
-        long loginHistoryRecords = loginHistoryRepository.count();
+        long loginHistoryRecords = loginHistoryRepository.countByUserId(userId);
 
         return new AccountDeletePreviewResponse(totalPasswords, trashedPasswords, loginHistoryRecords);
     }
