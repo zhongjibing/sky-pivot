@@ -7,6 +7,7 @@ import com.icezhg.sky.pivot.dto.ApiResponse;
 import tools.jackson.databind.json.JsonMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -39,10 +40,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         int count = rateLimitCache.get(key, k -> 0);
 
         if (count >= maxRequests) {
-            response.setStatus(429);
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(objectMapper.writeValueAsString(
-                ApiResponse.error(429, "Rate limit exceeded. Try again later.")
+                ApiResponse.error(HttpStatus.TOO_MANY_REQUESTS.value(), "Rate limit exceeded. Try again later.")
             ));
             return false;
         }

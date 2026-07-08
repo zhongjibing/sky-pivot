@@ -8,6 +8,7 @@ import com.icezhg.sky.pivot.dto.QrCodeResponse;
 import com.icezhg.sky.pivot.dto.QrCodeStatusResponse;
 import com.icezhg.sky.pivot.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,7 +59,7 @@ public class PcAuthController {
                                                 HttpServletRequest httpRequest) {
         QrCodeState state = qrCodeCache.getIfPresent(ticket);
         if (state == null || state.expiry().isBefore(Instant.now())) {
-            return ApiResponse.error(400, "QR code expired");
+            return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "QR code expired");
         }
 
         try {
@@ -68,7 +69,7 @@ public class PcAuthController {
             qrCodeCache.put(ticket, new QrCodeState("CONFIRMED", loginResponse.token(), state.expiry()));
             return ApiResponse.success();
         } catch (Exception e) {
-            return ApiResponse.error(400, "Login failed: " + e.getMessage());
+            return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Login failed: " + e.getMessage());
         }
     }
 

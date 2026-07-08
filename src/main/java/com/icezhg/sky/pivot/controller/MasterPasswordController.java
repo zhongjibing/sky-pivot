@@ -11,6 +11,7 @@ import com.icezhg.sky.pivot.security.TemporaryTokenService;
 import com.icezhg.sky.pivot.security.TemporaryTokenService.TokenType;
 import com.icezhg.sky.pivot.service.MasterPasswordService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,7 +54,7 @@ public class MasterPasswordController {
 
         TemporaryTokenService.TokenData tokenData = temporaryTokenService.consumeToken(tempToken, TokenType.MASTER_PASSWORD);
         if (tokenData == null || !tokenData.userId().equals(userId)) {
-            return ApiResponse.error(401, "Invalid or expired token");
+            return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired token");
         }
 
         masterPasswordService.changeMasterPassword(userId, request.currentMasterPassword(), request.newMasterPassword());

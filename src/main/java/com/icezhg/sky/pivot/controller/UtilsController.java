@@ -6,6 +6,7 @@ import com.icezhg.sky.pivot.dto.PasswordGenerateResponse;
 import com.icezhg.sky.pivot.dto.PasswordStrengthRequest;
 import com.icezhg.sky.pivot.dto.PasswordStrengthResponse;
 import com.icezhg.sky.pivot.service.HealthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +36,7 @@ public class UtilsController {
     public ApiResponse<PasswordGenerateResponse> generatePassword(
             @RequestBody PasswordGenerateRequest request) {
         if (!request.uppercase() && !request.lowercase() && !request.digits() && !request.special()) {
-            return ApiResponse.error(400, "At least one character type must be selected");
+            return ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "At least one character type must be selected");
         }
 
         StringBuilder charPool = new StringBuilder();

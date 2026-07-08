@@ -1,5 +1,6 @@
 package com.icezhg.sky.pivot.exception;
 
+import com.icezhg.sky.pivot.common.Constants;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import com.icezhg.sky.pivot.security.JwtService;
 import com.icezhg.sky.pivot.service.AuthService;
@@ -25,81 +26,81 @@ public class GlobalExceptionHandler {
             .map(e -> e.getField() + ": " + e.getDefaultMessage())
             .reduce((a, b) -> a + "; " + b)
             .orElse("Validation failed");
-        return ResponseEntity.badRequest().body(ApiResponse.error(400, message));
+        return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message));
     }
 
     @ExceptionHandler(JwtService.TokenValidationException.class)
     public ResponseEntity<ApiResponse<Void>> handleTokenValidation(JwtService.TokenValidationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error(401, "Invalid or expired token"));
+            .body(ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired token"));
     }
 
     @ExceptionHandler(MasterPasswordService.WrongMasterPasswordException.class)
     public ResponseEntity<ApiResponse<Void>> handleWrongPassword(MasterPasswordService.WrongMasterPasswordException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body(ApiResponse.error(403, "Wrong master password"));
+            .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Wrong master password"));
     }
 
     @ExceptionHandler(MasterPasswordService.MasterPasswordAlreadySetException.class)
     public ResponseEntity<ApiResponse<Void>> handleAlreadySet(MasterPasswordService.MasterPasswordAlreadySetException ex) {
         return ResponseEntity.badRequest()
-            .body(ApiResponse.error(400, "Master password already set"));
+            .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Master password already set"));
     }
 
     @ExceptionHandler(MasterPasswordService.MasterPasswordNotSetException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotSet(MasterPasswordService.MasterPasswordNotSetException ex) {
         return ResponseEntity.badRequest()
-            .body(ApiResponse.error(400, "Master password not set"));
+            .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Master password not set"));
     }
 
     @ExceptionHandler(MasterPasswordService.SamePasswordException.class)
     public ResponseEntity<ApiResponse<Void>> handleSamePassword(MasterPasswordService.SamePasswordException ex) {
         return ResponseEntity.badRequest()
-            .body(ApiResponse.error(400, "New password must differ from current"));
+            .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "New password must differ from current"));
     }
 
     @ExceptionHandler(MasterPasswordService.UserNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserNotFound(MasterPasswordService.UserNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(ApiResponse.error(404, ex.getMessage()));
+            .body(ApiResponse.error(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
     }
 
     @ExceptionHandler(AuthService.AccountDeletedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccountDeleted(AuthService.AccountDeletedException ex) {
-        return ResponseEntity.status(451)
-            .body(ApiResponse.error(451, "Account has been deleted"));
+        return ResponseEntity.status(Constants.HTTP_STATUS_451)
+            .body(ApiResponse.error(Constants.HTTP_STATUS_451, "Account has been deleted"));
     }
 
     @ExceptionHandler(AuthService.AccountDisabledException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccountDisabled(AuthService.AccountDisabledException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body(ApiResponse.error(403, "Account has been disabled"));
+            .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Account has been disabled"));
     }
 
     @ExceptionHandler(WeChatService.WeChatException.class)
     public ResponseEntity<ApiResponse<Void>> handleWeChat(WeChatService.WeChatException ex) {
         log.error("WeChat API error", ex);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-            .body(ApiResponse.error(502, "WeChat service error: " + ex.getMessage()));
+            .body(ApiResponse.error(HttpStatus.BAD_GATEWAY.value(), "WeChat service error: " + ex.getMessage()));
     }
 
     @ExceptionHandler(CryptoService.CryptoException.class)
     public ResponseEntity<ApiResponse<Void>> handleCrypto(CryptoService.CryptoException ex) {
         log.error("Crypto operation failed", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.error(500, "Internal encryption error"));
+            .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal encryption error"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
-            .body(ApiResponse.error(400, ex.getMessage()));
+            .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
         log.error("Unexpected error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.error(500, "Internal server error"));
+            .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error"));
     }
 }
