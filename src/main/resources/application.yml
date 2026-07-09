@@ -8,9 +8,9 @@ spring:
     name: sky-pivot
 
   datasource:
-    url: jdbc:mysql://localhost:3306/hello?useSSL=true&requireSSL=true&verifyServerCertificate=false&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=UTC
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://mysql.icezhg.com:3306/sky_pivot?useSSL=true&requireSSL=true&verifyServerCertificate=false&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=UTC
+    username: sky_pivot
+    password: 'Admin!123'
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 10
@@ -69,6 +69,19 @@ app:
 
   login-history:
     retention-months: 12
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
 
 logging:
   level:
