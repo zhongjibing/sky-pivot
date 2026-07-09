@@ -34,19 +34,19 @@ public class User {
     private String avatarUrl;
 
     @Column(name = "master_password_salt", nullable = false, length = 128)
-    private String masterPasswordSalt;
+    private String masterPasswordSalt = "";
 
     @Column(name = "master_password_hash", nullable = false, length = 256)
-    private String masterPasswordHash;
+    private String masterPasswordHash = "";
 
     @Column(name = "last_master_password_verified_at")
     private LocalDateTime lastMasterPasswordVerifiedAt;
 
     @Column(name = "encrypted_dek", nullable = false, length = 512)
-    private String encryptedDek;
+    private String encryptedDek = "";
 
     @Column(name = "kek_verification", nullable = false, length = 512)
-    private String kekVerification;
+    private String kekVerification = "";
 
     @Column(name = "biometric_token_salt", length = 128)
     private String biometricTokenSalt;
