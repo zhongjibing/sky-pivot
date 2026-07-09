@@ -8,7 +8,14 @@ spring:
     name: sky-pivot
   config:
     import: optional:file:/usr/local/etc/sky-pivot/application.yml
-
+  threads:
+    virtual:
+      enabled: true
+  task:
+    execution:
+      threads:
+        virtual:
+          enabled: true
 management:
   server:
     port: 8081
