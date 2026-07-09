@@ -7,69 +7,6 @@ spring:
   application:
     name: sky-pivot
 
-  datasource:
-    url: jdbc:mysql://mysql.icezhg.com:3306/sky_pivot?useSSL=true&requireSSL=true&verifyServerCertificate=false&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=UTC
-    username: sky_pivot
-    password: 'Admin!123'
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      minimum-idle: 10
-      maximum-pool-size: 50
-      idle-timeout: 300000
-      max-lifetime: 1800000
-      connection-timeout: 30000
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
-    open-in-view: false
-
-  jackson:
-    json:
-      serialization:
-        write-dates-as-timestamps: true
-      default-property-inclusion: non_null
-
-  cache:
-    type: caffeine
-    caffeine:
-      spec: maximumSize=10000,expireAfterWrite=5m
-
-app:
-  jwt:
-    secret: ${JWT_SECRET:change-me-in-production-this-must-be-at-least-256-bits-long-for-hs256}
-    miniapp-expiry-days: 7
-    pc-expiry-hours: 2
-
-  wechat:
-    appid: ${WECHAT_APPID:}
-    secret: ${WECHAT_SECRET:}
-    pc-appid: ${WECHAT_PC_APPID:}
-    pc-secret: ${WECHAT_PC_SECRET:}
-
-  crypto:
-    pbkdf2-iterations: 600000
-    pbkdf2-key-length: 256
-    bcrypt-cost: 12
-
-  security:
-    rate-limit: 100
-    rate-limit-window-seconds: 60
-    biometric-max-failures: 3
-    biometric-lockout-minutes: 5
-    token-expiry-seconds: 60
-
-  trash:
-    retention-days: 30
-
-  login-history:
-    retention-months: 12
-
 management:
   server:
     port: 8081
@@ -82,11 +19,3 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
-
-logging:
-  level:
-    root: INFO
-    com.icezhg: DEBUG
-    org.springframework.security: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
