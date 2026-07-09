@@ -7,7 +7,7 @@ spring:
   application:
     name: sky-pivot
   config:
-    import: optional:file:/usr/local/etc/sky-pivot/application.properties
+    import: optional:file:/usr/local/etc/sky-pivot/application.yml
 
 management:
   server:
