@@ -11,5 +11,4 @@ public class SecurityProperties {
     private int rateLimitWindowSeconds = 60;
     private int biometricMaxFailures = 3;
     private int biometricLockoutMinutes = 5;
-    private int tokenExpirySeconds = 60;
 }
