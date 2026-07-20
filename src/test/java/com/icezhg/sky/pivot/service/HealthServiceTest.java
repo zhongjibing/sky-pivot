@@ -1,12 +1,26 @@
 package com.icezhg.sky.pivot.service;
 
+import com.icezhg.sky.pivot.repository.PasswordRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class HealthServiceTest {
 
-    private final HealthService healthService = new HealthService();
+    @Mock
+    private PasswordRepository passwordRepository;
+
+    private HealthService healthService;
+
+    @BeforeEach
+    void setUp() {
+        healthService = new HealthService(passwordRepository);
+    }
 
     @Test
     void weakPassword_shortAndCommon() {
