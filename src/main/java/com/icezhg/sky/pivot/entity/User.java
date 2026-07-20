@@ -74,6 +74,6 @@ public class User {
     private LocalDateTime updatedAt;
 
     public boolean isMasterPasswordSet() {
-        return masterPasswordSalt != null && masterPasswordHash != null;
+        return masterPasswordHash != null && !masterPasswordHash.isEmpty();
     }
 }
