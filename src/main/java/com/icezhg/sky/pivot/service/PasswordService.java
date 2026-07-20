@@ -11,6 +11,7 @@ import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import com.icezhg.sky.pivot.repository.SyncVersionRepository;
 import com.icezhg.sky.pivot.repository.UserRepository;
+import com.icezhg.sky.pivot.security.JwtAuthContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +42,8 @@ public class PasswordService {
         this.healthService = healthService;
     }
 
-    public Page<PasswordListResponse> listPasswords(Long userId, String search, String sortBy, String sortOrder, int page, int size) {
+    public Page<PasswordListResponse> listPasswords(String search, String sortBy, String sortOrder, int page, int size) {
+        Long userId = JwtAuthContext.getUserId();
         Sort sort = "asc".equalsIgnoreCase(sortOrder) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
@@ -58,7 +60,8 @@ public class PasswordService {
     }
 
     @Transactional
-    public PasswordDetailResponse viewPassword(Long userId, Long passwordId, String masterPassword) {
+    public PasswordDetailResponse viewPassword(Long passwordId, String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -90,7 +93,8 @@ public class PasswordService {
     }
 
     @Transactional
-    public PasswordCreateResponse createPassword(Long userId, PasswordCreateRequest request) {
+    public PasswordCreateResponse createPassword(PasswordCreateRequest request) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -122,7 +126,8 @@ public class PasswordService {
     }
 
     @Transactional
-    public void updatePassword(Long userId, Long passwordId, PasswordUpdateRequest request, String masterPassword) {
+    public void updatePassword(Long passwordId, PasswordUpdateRequest request, String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -157,7 +162,8 @@ public class PasswordService {
     }
 
     @Transactional
-    public void softDeletePassword(Long userId, Long passwordId) {
+    public void softDeletePassword(Long passwordId) {
+        Long userId = JwtAuthContext.getUserId();
         Password password = passwordRepository.findByIdAndUserId(passwordId, userId)
                 .orElseThrow(() -> new RuntimeException("Password not found"));
 

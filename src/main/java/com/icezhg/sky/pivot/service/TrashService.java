@@ -7,6 +7,7 @@ import com.icezhg.sky.pivot.entity.Password;
 import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import com.icezhg.sky.pivot.repository.UserRepository;
+import com.icezhg.sky.pivot.security.JwtAuthContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,8 @@ public class TrashService {
         this.retentionDays = trashProperties.getRetentionDays();
     }
 
-    public List<TrashItemResponse> listTrash(Long userId) {
+    public List<TrashItemResponse> listTrash() {
+        Long userId = JwtAuthContext.getUserId();
         List<Password> trashed = passwordRepository.findTrashByUserId(userId);
         return trashed.stream()
             .map(p -> {
@@ -45,7 +47,8 @@ public class TrashService {
     }
 
     @Transactional
-    public PasswordDetailResponse viewTrashDetail(Long userId, Long passwordId, String masterPassword) {
+    public PasswordDetailResponse viewTrashDetail(Long passwordId, String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -77,7 +80,8 @@ public class TrashService {
     }
 
     @Transactional
-    public void restorePassword(Long userId, Long passwordId) {
+    public void restorePassword(Long passwordId) {
+        Long userId = JwtAuthContext.getUserId();
         Password password = passwordRepository.findTrashByIdAndUserId(passwordId, userId)
             .orElseThrow(() -> new RuntimeException("Trashed password not found"));
 
@@ -86,7 +90,8 @@ public class TrashService {
     }
 
     @Transactional
-    public void permanentlyDelete(Long userId, Long passwordId) {
+    public void permanentlyDelete(Long passwordId) {
+        Long userId = JwtAuthContext.getUserId();
         Password password = passwordRepository.findTrashByIdAndUserId(passwordId, userId)
             .orElseThrow(() -> new RuntimeException("Trashed password not found"));
 

@@ -2,6 +2,7 @@ package com.icezhg.sky.pivot.service;
 
 import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.UserRepository;
+import com.icezhg.sky.pivot.security.JwtAuthContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +22,8 @@ public class MasterPasswordService {
     }
 
     @Transactional
-    public void setupMasterPassword(Long userId, String masterPassword) {
+    public void setupMasterPassword(String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -50,7 +52,8 @@ public class MasterPasswordService {
     }
 
     @Transactional
-    public void verifyMasterPassword(Long userId, String masterPassword) {
+    public void verifyMasterPassword(String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -68,7 +71,8 @@ public class MasterPasswordService {
     }
 
     @Transactional
-    public void changeMasterPassword(Long userId, String currentPassword, String newPassword) {
+    public void changeMasterPassword(String currentPassword, String newPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -123,14 +127,16 @@ public class MasterPasswordService {
         cryptoService.clearBytes(dek);
     }
 
-    public boolean isMasterPasswordSet(Long userId) {
+    public boolean isMasterPasswordSet() {
+        Long userId = JwtAuthContext.getUserId();
         return userRepository.findById(userId)
             .map(User::isMasterPasswordSet)
             .orElse(false);
     }
 
     @Transactional
-    public void bindBiometric(Long userId, String masterPassword) {
+    public void bindBiometric(String masterPassword) {
+        Long userId = JwtAuthContext.getUserId();
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 

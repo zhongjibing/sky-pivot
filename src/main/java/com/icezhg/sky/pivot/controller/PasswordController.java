@@ -6,7 +6,6 @@ import com.icezhg.sky.pivot.dto.PasswordCreateResponse;
 import com.icezhg.sky.pivot.dto.PasswordDetailResponse;
 import com.icezhg.sky.pivot.dto.PasswordListResponse;
 import com.icezhg.sky.pivot.dto.PasswordUpdateRequest;
-import com.icezhg.sky.pivot.security.JwtAuthContext;
 import com.icezhg.sky.pivot.service.PasswordService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -37,8 +36,7 @@ public class PasswordController {
             @RequestParam(defaultValue = "desc") String sortOrder,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Long userId = JwtAuthContext.getUserId();
-        Page<PasswordListResponse> result = passwordService.listPasswords(userId, search, sortBy, sortOrder, page, size);
+        Page<PasswordListResponse> result = passwordService.listPasswords(search, sortBy, sortOrder, page, size);
         return ApiResponse.success(result);
     }
 
@@ -46,16 +44,14 @@ public class PasswordController {
     public ApiResponse<PasswordDetailResponse> view(
             @PathVariable Long id,
             @RequestParam String masterPassword) {
-        Long userId = JwtAuthContext.getUserId();
-        PasswordDetailResponse result = passwordService.viewPassword(userId, id, masterPassword);
+        PasswordDetailResponse result = passwordService.viewPassword(id, masterPassword);
         return ApiResponse.success(result);
     }
 
     @PostMapping
     public ApiResponse<PasswordCreateResponse> create(
             @Valid @RequestBody PasswordCreateRequest request) {
-        Long userId = JwtAuthContext.getUserId();
-        PasswordCreateResponse result = passwordService.createPassword(userId, request);
+        PasswordCreateResponse result = passwordService.createPassword(request);
         return ApiResponse.success(result);
     }
 
@@ -64,16 +60,14 @@ public class PasswordController {
             @PathVariable Long id,
             @Valid @RequestBody PasswordUpdateRequest request,
             @RequestParam String masterPassword) {
-        Long userId = JwtAuthContext.getUserId();
-        passwordService.updatePassword(userId, id, request, masterPassword);
+        passwordService.updatePassword(id, request, masterPassword);
         return ApiResponse.success();
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(
             @PathVariable Long id) {
-        Long userId = JwtAuthContext.getUserId();
-        passwordService.softDeletePassword(userId, id);
+        passwordService.softDeletePassword(id);
         return ApiResponse.success();
     }
 }

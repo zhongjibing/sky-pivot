@@ -2,7 +2,6 @@ package com.icezhg.sky.pivot.controller;
 
 import com.icezhg.sky.pivot.dto.AccountDeletePreviewResponse;
 import com.icezhg.sky.pivot.dto.ApiResponse;
-import com.icezhg.sky.pivot.security.JwtAuthContext;
 import com.icezhg.sky.pivot.service.AccountService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,15 +20,13 @@ public class AccountController {
 
     @GetMapping("/delete/preview")
     public ApiResponse<AccountDeletePreviewResponse> preview() {
-        Long userId = JwtAuthContext.getUserId();
-        AccountDeletePreviewResponse result = accountService.previewDeletion(userId);
+        AccountDeletePreviewResponse result = accountService.previewDeletion();
         return ApiResponse.success(result);
     }
 
     @PostMapping("/delete")
     public ApiResponse<Void> delete() {
-        Long userId = JwtAuthContext.getUserId();
-        accountService.deleteAccount(userId);
+        accountService.deleteAccount();
         return ApiResponse.success();
     }
 }

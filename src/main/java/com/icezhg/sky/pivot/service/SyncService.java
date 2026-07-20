@@ -6,6 +6,7 @@ import com.icezhg.sky.pivot.entity.Password;
 import com.icezhg.sky.pivot.entity.SyncVersion;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import com.icezhg.sky.pivot.repository.SyncVersionRepository;
+import com.icezhg.sky.pivot.security.JwtAuthContext;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,7 +26,8 @@ public class SyncService {
         this.passwordRepository = passwordRepository;
     }
 
-    public SyncCheckResponse checkVersion(Long userId) {
+    public SyncCheckResponse checkVersion() {
+        Long userId = JwtAuthContext.getUserId();
         SyncVersion syncVersion = syncVersionRepository.findByUserId(userId)
             .orElseGet(() -> {
                 SyncVersion sv = new SyncVersion();
@@ -36,7 +38,8 @@ public class SyncService {
         return new SyncCheckResponse(syncVersion.getVersion());
     }
 
-    public SyncPullResponse pullChanges(Long userId, long sinceVersion) {
+    public SyncPullResponse pullChanges(long sinceVersion) {
+        Long userId = JwtAuthContext.getUserId();
         SyncVersion syncVersion = syncVersionRepository.findByUserId(userId).orElse(null);
         if (syncVersion == null || syncVersion.getVersion() <= sinceVersion) {
             return new SyncPullResponse(List.of());

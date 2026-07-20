@@ -3,7 +3,6 @@ package com.icezhg.sky.pivot.controller;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import com.icezhg.sky.pivot.dto.SyncCheckResponse;
 import com.icezhg.sky.pivot.dto.SyncPullResponse;
-import com.icezhg.sky.pivot.security.JwtAuthContext;
 import com.icezhg.sky.pivot.service.SyncService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,16 +21,14 @@ public class SyncController {
 
     @GetMapping("/check")
     public ApiResponse<SyncCheckResponse> check() {
-        Long userId = JwtAuthContext.getUserId();
-        SyncCheckResponse result = syncService.checkVersion(userId);
+        SyncCheckResponse result = syncService.checkVersion();
         return ApiResponse.success(result);
     }
 
     @GetMapping("/pull")
     public ApiResponse<SyncPullResponse> pull(
             @RequestParam(defaultValue = "0") long sinceVersion) {
-        Long userId = JwtAuthContext.getUserId();
-        SyncPullResponse result = syncService.pullChanges(userId, sinceVersion);
+        SyncPullResponse result = syncService.pullChanges(sinceVersion);
         return ApiResponse.success(result);
     }
 }

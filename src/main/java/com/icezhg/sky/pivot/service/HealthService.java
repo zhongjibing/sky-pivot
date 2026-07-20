@@ -1,5 +1,10 @@
 package com.icezhg.sky.pivot.service;
 
+import com.icezhg.sky.pivot.dto.HealthSummaryResponse;
+import com.icezhg.sky.pivot.dto.PasswordListResponse;
+import com.icezhg.sky.pivot.entity.Password;
+import com.icezhg.sky.pivot.repository.PasswordRepository;
+import com.icezhg.sky.pivot.security.JwtAuthContext;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -16,6 +21,29 @@ public class HealthService {
         "donald", "password1", "password123", "admin", "root", "toor",
         "pass", "test", "guest", "master123", "changeme", "passwd"
     ));
+
+    private final PasswordRepository passwordRepository;
+
+    public HealthService(PasswordRepository passwordRepository) {
+        this.passwordRepository = passwordRepository;
+    }
+
+    public HealthSummaryResponse getSummary() {
+        Long userId = JwtAuthContext.getUserId();
+        long weak = passwordRepository.countByUserIdAndHealthLevel(userId, "WEAK");
+        long fair = passwordRepository.countByUserIdAndHealthLevel(userId, "FAIR");
+        long strong = passwordRepository.countByUserIdAndHealthLevel(userId, "STRONG");
+        long veryStrong = passwordRepository.countByUserIdAndHealthLevel(userId, "VERY_STRONG");
+        return new HealthSummaryResponse(weak, fair, strong, veryStrong);
+    }
+
+    public List<PasswordListResponse> getWeakPasswords() {
+        Long userId = JwtAuthContext.getUserId();
+        List<Password> weakPasswords = passwordRepository.findByUserIdAndHealthLevel(userId, "WEAK");
+        return weakPasswords.stream()
+                .map(p -> new PasswordListResponse(p.getId(), p.getTitle(), p.getUrl(), p.getAccount(), p.getHealthLevel(), p.getUpdatedAt()))
+                .toList();
+    }
 
     public HealthResult checkHealth(String password) {
         int score = 0;
