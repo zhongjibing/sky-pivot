@@ -11,7 +11,6 @@ import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.PasswordRepository;
 import com.icezhg.sky.pivot.repository.SyncVersionRepository;
 import com.icezhg.sky.pivot.repository.UserRepository;
-import com.icezhg.sky.pivot.security.TemporaryTokenService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,20 +28,17 @@ public class PasswordService {
     private final SyncVersionRepository syncVersionRepository;
     private final CryptoService cryptoService;
     private final HealthService healthService;
-    private final TemporaryTokenService temporaryTokenService;
 
     public PasswordService(PasswordRepository passwordRepository,
                            UserRepository userRepository,
                            SyncVersionRepository syncVersionRepository,
                            CryptoService cryptoService,
-                           HealthService healthService,
-                           TemporaryTokenService temporaryTokenService) {
+                           HealthService healthService) {
         this.passwordRepository = passwordRepository;
         this.userRepository = userRepository;
         this.syncVersionRepository = syncVersionRepository;
         this.cryptoService = cryptoService;
         this.healthService = healthService;
-        this.temporaryTokenService = temporaryTokenService;
     }
 
     public Page<PasswordListResponse> listPasswords(Long userId, String search, String sortBy, String sortOrder, int page, int size) {

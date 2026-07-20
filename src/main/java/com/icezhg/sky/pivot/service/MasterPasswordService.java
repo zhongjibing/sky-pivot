@@ -2,8 +2,6 @@ package com.icezhg.sky.pivot.service;
 
 import com.icezhg.sky.pivot.entity.User;
 import com.icezhg.sky.pivot.repository.UserRepository;
-import com.icezhg.sky.pivot.security.TemporaryTokenService;
-import com.icezhg.sky.pivot.security.TemporaryTokenService.TokenType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,14 +13,11 @@ public class MasterPasswordService {
 
     private final UserRepository userRepository;
     private final CryptoService cryptoService;
-    private final TemporaryTokenService temporaryTokenService;
 
     public MasterPasswordService(UserRepository userRepository,
-                                  CryptoService cryptoService,
-                                  TemporaryTokenService temporaryTokenService) {
+                                  CryptoService cryptoService) {
         this.userRepository = userRepository;
         this.cryptoService = cryptoService;
-        this.temporaryTokenService = temporaryTokenService;
     }
 
     @Transactional
@@ -55,7 +50,7 @@ public class MasterPasswordService {
     }
 
     @Transactional
-    public String verifyMasterPassword(Long userId, String masterPassword) {
+    public void verifyMasterPassword(Long userId, String masterPassword) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -64,13 +59,12 @@ public class MasterPasswordService {
         }
 
         if (!cryptoService.verifyMasterPassword(masterPassword, user.getMasterPasswordHash())) {
+            cryptoService.clearBytes(masterPassword.getBytes());
             throw new WrongMasterPasswordException();
         }
 
         user.setLastMasterPasswordVerifiedAt(LocalDateTime.now());
         userRepository.save(user);
-
-        return temporaryTokenService.createToken(userId, TokenType.MASTER_PASSWORD);
     }
 
     @Transactional

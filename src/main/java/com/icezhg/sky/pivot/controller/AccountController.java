@@ -3,13 +3,9 @@ package com.icezhg.sky.pivot.controller;
 import com.icezhg.sky.pivot.dto.AccountDeletePreviewResponse;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
-import com.icezhg.sky.pivot.security.TemporaryTokenService;
-import com.icezhg.sky.pivot.security.TemporaryTokenService.TokenType;
 import com.icezhg.sky.pivot.service.AccountService;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,12 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
     private final AccountService accountService;
-    private final TemporaryTokenService temporaryTokenService;
 
-    public AccountController(AccountService accountService,
-                             TemporaryTokenService temporaryTokenService) {
+    public AccountController(AccountService accountService) {
         this.accountService = accountService;
-        this.temporaryTokenService = temporaryTokenService;
     }
 
     @GetMapping("/delete/preview")
@@ -34,15 +27,8 @@ public class AccountController {
     }
 
     @PostMapping("/delete")
-    public ApiResponse<Void> delete(
-            @RequestHeader("X-Token") String tempToken) {
+    public ApiResponse<Void> delete() {
         Long userId = JwtAuthContext.getUserId();
-
-        TemporaryTokenService.TokenData tokenData = temporaryTokenService.consumeToken(tempToken, TokenType.MASTER_PASSWORD);
-        if (tokenData == null || !tokenData.userId().equals(userId)) {
-            return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired token");
-        }
-
         accountService.deleteAccount(userId);
         return ApiResponse.success();
     }

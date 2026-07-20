@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,7 +44,6 @@ public class PasswordController {
 
     @GetMapping("/{id}")
     public ApiResponse<PasswordDetailResponse> view(
-            @RequestHeader("X-Token") String tempToken,
             @PathVariable Long id,
             @RequestParam String masterPassword) {
         Long userId = JwtAuthContext.getUserId();
@@ -63,7 +61,6 @@ public class PasswordController {
 
     @PutMapping("/{id}")
     public ApiResponse<Void> update(
-            @RequestHeader("X-Token") String tempToken,
             @PathVariable Long id,
             @Valid @RequestBody PasswordUpdateRequest request,
             @RequestParam String masterPassword) {

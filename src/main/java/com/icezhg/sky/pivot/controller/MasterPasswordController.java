@@ -5,18 +5,13 @@ import com.icezhg.sky.pivot.dto.MasterPasswordChangeRequest;
 import com.icezhg.sky.pivot.dto.MasterPasswordSetupRequest;
 import com.icezhg.sky.pivot.dto.MasterPasswordStatusResponse;
 import com.icezhg.sky.pivot.dto.MasterPasswordVerifyRequest;
-import com.icezhg.sky.pivot.dto.TokenResponse;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
-import com.icezhg.sky.pivot.security.TemporaryTokenService;
-import com.icezhg.sky.pivot.security.TemporaryTokenService.TokenType;
 import com.icezhg.sky.pivot.service.MasterPasswordService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,12 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class MasterPasswordController {
 
     private final MasterPasswordService masterPasswordService;
-    private final TemporaryTokenService temporaryTokenService;
 
-    public MasterPasswordController(MasterPasswordService masterPasswordService,
-                                    TemporaryTokenService temporaryTokenService) {
+    public MasterPasswordController(MasterPasswordService masterPasswordService) {
         this.masterPasswordService = masterPasswordService;
-        this.temporaryTokenService = temporaryTokenService;
     }
 
     @PostMapping("/setup")
@@ -41,22 +33,15 @@ public class MasterPasswordController {
     }
 
     @PostMapping("/verify")
-    public ApiResponse<TokenResponse> verify(@Valid @RequestBody MasterPasswordVerifyRequest request) {
+    public ApiResponse<Void> verify(@Valid @RequestBody MasterPasswordVerifyRequest request) {
         Long userId = JwtAuthContext.getUserId();
-        String token = masterPasswordService.verifyMasterPassword(userId, request.masterPassword());
-        return ApiResponse.success(new TokenResponse(token));
+        masterPasswordService.verifyMasterPassword(userId, request.masterPassword());
+        return ApiResponse.success();
     }
 
     @PutMapping("/change")
-    public ApiResponse<Void> change(@RequestHeader("X-Token") String tempToken,
-                                    @Valid @RequestBody MasterPasswordChangeRequest request) {
+    public ApiResponse<Void> change(@Valid @RequestBody MasterPasswordChangeRequest request) {
         Long userId = JwtAuthContext.getUserId();
-
-        TemporaryTokenService.TokenData tokenData = temporaryTokenService.consumeToken(tempToken, TokenType.MASTER_PASSWORD);
-        if (tokenData == null || !tokenData.userId().equals(userId)) {
-            return ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired token");
-        }
-
         masterPasswordService.changeMasterPassword(userId, request.currentMasterPassword(), request.newMasterPassword());
         return ApiResponse.success();
     }
