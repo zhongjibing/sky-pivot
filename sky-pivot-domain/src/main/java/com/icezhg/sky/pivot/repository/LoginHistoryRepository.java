@@ -12,11 +12,11 @@ import java.time.LocalDateTime;
 @Repository
 public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long> {
 
+    long countByUserId(Long userId);
+
     @Modifying
     @Query("DELETE FROM LoginHistory l WHERE l.loginAt < :threshold")
     int deleteByLoginAtBefore(@Param("threshold") LocalDateTime threshold);
-
-    long countByUserId(Long userId);
 
     @Modifying
     @Query("DELETE FROM LoginHistory l WHERE l.userId = :userId")
