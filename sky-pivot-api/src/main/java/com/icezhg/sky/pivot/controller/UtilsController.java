@@ -5,7 +5,6 @@ import com.icezhg.sky.pivot.dto.PasswordGenerateRequest;
 import com.icezhg.sky.pivot.dto.PasswordGenerateResponse;
 import com.icezhg.sky.pivot.dto.PasswordStrengthRequest;
 import com.icezhg.sky.pivot.dto.PasswordStrengthResponse;
-import com.icezhg.sky.pivot.service.HealthService;
 import com.icezhg.sky.pivot.service.UtilsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,11 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class UtilsController {
 
     private final UtilsService utilsService;
-    private final HealthService healthService;
 
-    public UtilsController(UtilsService utilsService, HealthService healthService) {
+    public UtilsController(UtilsService utilsService) {
         this.utilsService = utilsService;
-        this.healthService = healthService;
     }
 
     @PostMapping("/generate-password")
@@ -34,7 +31,7 @@ public class UtilsController {
     @PostMapping("/check-strength")
     public ApiResponse<PasswordStrengthResponse> checkStrength(
             @RequestBody PasswordStrengthRequest request) {
-        HealthService.HealthResult result = healthService.checkHealth(request.password());
+        UtilsService.StrengthResult result = utilsService.checkStrength(request.password());
         return ApiResponse.success(new PasswordStrengthResponse(result.score(), result.level()));
     }
 }
