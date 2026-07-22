@@ -19,6 +19,9 @@ public class LoginHistory {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "device_id", length = 64)
+    private String deviceId;
+
     @Column(name = "login_type", nullable = false, length = 16)
     private String loginType;
 
