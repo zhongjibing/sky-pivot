@@ -1,0 +1,79 @@
+# Production Profile
+# Usage: SPRING_PROFILES_ACTIVE=prod
+server:
+  port: ${SERVER_PORT:8443}
+  servlet:
+    context-path: /
+
+spring:
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DATASOURCE_POOL_SIZE:50}
+      minimum-idle: 10
+      idle-timeout: 600000
+      connection-timeout: 5000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  jpa:
+    show-sql: false
+    open-in-view: false
+
+  data:
+    redis:
+      mode: ${REDIS_MODE:sentinel}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD}
+      sentinel:
+        master: ${REDIS_SENTINEL_MASTER}
+        nodes: ${REDIS_SENTINEL_NODES}
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 10
+        shutdown-timeout: 200ms
+
+  flyway:
+    enabled: true
+    clean-disabled: true
+    validate-on-migrate: true
+    out-of-order: false
+
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:true}
+      host: ${VAULT_HOST}
+      port: ${VAULT_PORT:8200}
+      scheme: ${VAULT_SCHEME:https}
+      authentication: ${VAULT_AUTH_METHOD:APPROLE}
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}
+      kv:
+        enabled: true
+        backend: secret
+      fail-fast: true
+
+logging:
+  level:
+    root: INFO
+    com.icezhg.sky.pivot: INFO
+    org.springframework: WARN
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8082}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
