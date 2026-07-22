@@ -68,7 +68,7 @@ CREATE TABLE vault_items (
 ) ENGINE=InnoDB;
 
 -- ============================================================================
--- 4. sync_log — Partitioned by day (via server_timestamp), auto partition maintenance
+-- 4. sync_log
 -- ============================================================================
 CREATE TABLE sync_log (
     id                  BIGINT          AUTO_INCREMENT,
@@ -86,13 +86,7 @@ CREATE TABLE sync_log (
     PRIMARY KEY (id, server_timestamp),
     INDEX idx_sync_user_time (user_id, client_timestamp),
     CONSTRAINT fk_sync_log_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB
-PARTITION BY RANGE (FLOOR(server_timestamp / 86400000)) (
-    PARTITION p2026 VALUES LESS THAN (FLOOR(UNIX_TIMESTAMP('2027-01-01') / 86400)),
-    PARTITION p2027 VALUES LESS THAN (FLOOR(UNIX_TIMESTAMP('2028-01-01') / 86400)),
-    PARTITION p2028 VALUES LESS THAN (FLOOR(UNIX_TIMESTAMP('2029-01-01') / 86400)),
-    PARTITION p_future VALUES LESS THAN MAXVALUE
-);
+) ENGINE=InnoDB;
 
 -- ============================================================================
 -- 5. sync_log_archive — Mirror of sync_log for archival
@@ -100,7 +94,7 @@ PARTITION BY RANGE (FLOOR(server_timestamp / 86400000)) (
 CREATE TABLE sync_log_archive LIKE sync_log;
 
 -- ============================================================================
--- 6. audit_log — Partitioned by year, auto partition maintenance
+-- 6. audit_log
 -- ============================================================================
 CREATE TABLE audit_log (
     id              BIGINT          AUTO_INCREMENT,
@@ -124,13 +118,7 @@ CREATE TABLE audit_log (
     INDEX idx_audit_action (action, created_at),
     INDEX idx_audit_request (request_id),
     CONSTRAINT fk_audit_log_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB
-PARTITION BY RANGE (YEAR(created_at)) (
-    PARTITION p2026 VALUES LESS THAN (2027),
-    PARTITION p2027 VALUES LESS THAN (2028),
-    PARTITION p2028 VALUES LESS THAN (2029),
-    PARTITION p_future VALUES LESS THAN MAXVALUE
-);
+) ENGINE=InnoDB;
 
 -- ============================================================================
 -- 7. login_history — Login history with device_id
@@ -170,55 +158,3 @@ CREATE TABLE shared_vault_members (
     INDEX idx_shared_member (user_id),
     CONSTRAINT fk_shared_members_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- ============================================================================
--- Partition maintenance events (auto-create next year's partition)
--- Requires: SET GLOBAL event_scheduler = ON (MySQL SUPER/SYSTEM_VARIABLES_ADMIN)
--- ============================================================================
-DELIMITER //
-
-CREATE EVENT IF NOT EXISTS sync_log_create_partition
-ON SCHEDULE EVERY 1 YEAR
-STARTS '2027-01-01 00:00:00'
-DO
-BEGIN
-    DECLARE next_year INT;
-    DECLARE partition_name VARCHAR(10);
-    DECLARE boundary_date VARCHAR(10);
-    SET next_year = YEAR(CURDATE()) + 1;
-    SET partition_name = CONCAT('p', next_year);
-    SET boundary_date = CONCAT(next_year + 1, '-01-01');
-    SET @sql = CONCAT(
-        'ALTER TABLE sync_log REORGANIZE PARTITION p_future INTO (',
-        'PARTITION ', partition_name, ' VALUES LESS THAN (FLOOR(UNIX_TIMESTAMP("', boundary_date, '") / 86400)),',
-        'PARTITION p_future VALUES LESS THAN MAXVALUE',
-        ')'
-    );
-    PREPARE stmt FROM @sql;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-END//
-
-CREATE EVENT IF NOT EXISTS audit_log_create_partition
-ON SCHEDULE EVERY 1 YEAR
-STARTS '2027-01-01 00:00:00'
-DO
-BEGIN
-    DECLARE next_year INT;
-    DECLARE partition_name VARCHAR(10);
-    SET next_year = YEAR(CURDATE()) + 1;
-    SET partition_name = CONCAT('p', next_year);
-    SET @sql = CONCAT(
-        'ALTER TABLE audit_log REORGANIZE PARTITION p_future INTO (',
-        'PARTITION ', partition_name, ' VALUES LESS THAN (', next_year + 1, '),',
-        'PARTITION p_future VALUES LESS THAN MAXVALUE',
-        ')'
-    );
-    PREPARE stmt FROM @sql;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-END//
-
-DELIMITER ;
-
--- Enabled in application config or by DBA: SET GLOBAL event_scheduler = ON;
