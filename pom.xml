@@ -32,6 +32,7 @@
         <flyway.version>11.5.0</flyway.version>
         <bouncycastle.version>1.80</bouncycastle.version>
         <hofmann.version>1.0.0</hofmann.version>
+        <testcontainers.version>1.20.6</testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -129,6 +130,14 @@
                 <groupId>com.codeheadsystems</groupId>
                 <artifactId>hofmann-springboot</artifactId>
                 <version>${hofmann.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
