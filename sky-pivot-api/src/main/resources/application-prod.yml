@@ -44,20 +44,19 @@ spring:
     validate-on-migrate: true
     out-of-order: false
 
-  cloud:
-    vault:
-      enabled: ${VAULT_ENABLED:true}
-      host: ${VAULT_HOST}
-      port: ${VAULT_PORT:8200}
-      scheme: ${VAULT_SCHEME:https}
-      authentication: ${VAULT_AUTH_METHOD:APPROLE}
-      app-role:
-        role-id: ${VAULT_ROLE_ID}
-        secret-id: ${VAULT_SECRET_ID}
-      kv:
-        enabled: true
-        backend: secret
-      fail-fast: true
+  vault:
+    enabled: ${VAULT_ENABLED:true}
+    host: ${VAULT_HOST}
+    port: ${VAULT_PORT:8200}
+    scheme: ${VAULT_SCHEME:https}
+    authentication: ${VAULT_AUTH_METHOD:APPROLE}
+    app-role:
+      role-id: ${VAULT_ROLE_ID}
+      secret-id: ${VAULT_SECRET_ID}
+    kv:
+      enabled: true
+      backend: secret
+    fail-fast: true
 
 logging:
   level:

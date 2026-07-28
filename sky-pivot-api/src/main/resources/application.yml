@@ -54,20 +54,19 @@ spring:
     baseline-version: 1
     clean-disabled: true
 
-  cloud:
-    vault:
-      enabled: ${VAULT_ENABLED:false}
-      host: ${VAULT_HOST:localhost}
-      port: ${VAULT_PORT:8200}
-      scheme: ${VAULT_SCHEME:http}
-      authentication: ${VAULT_AUTH_METHOD:APPROLE}
-      app-role:
-        role-id: ${VAULT_ROLE_ID:}
-        secret-id: ${VAULT_SECRET_ID:}
-      kv:
-        enabled: true
-        backend: secret
-      fail-fast: true
+  vault:
+    enabled: ${VAULT_ENABLED:false}
+    host: ${VAULT_HOST:localhost}
+    port: ${VAULT_PORT:8200}
+    scheme: ${VAULT_SCHEME:http}
+    authentication: ${VAULT_AUTH_METHOD:APPROLE}
+    app-role:
+      role-id: ${VAULT_ROLE_ID:}
+      secret-id: ${VAULT_SECRET_ID:}
+    kv:
+      enabled: true
+      backend: secret
+    fail-fast: true
 
 management:
   server:

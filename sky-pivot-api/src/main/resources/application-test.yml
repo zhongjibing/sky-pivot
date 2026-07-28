@@ -22,9 +22,8 @@ spring:
   flyway:
     enabled: false
 
-  cloud:
-    vault:
-      enabled: false
+  vault:
+    enabled: false
 
 logging:
   level:
