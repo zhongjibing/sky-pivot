@@ -10,6 +10,8 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    Optional<User> findByCredentialIdentifier(String credentialIdentifier);
+
     Optional<User> findByRecoveryKeyHash(String recoveryKeyHash);
 
     List<User> findByStatus(Integer status);

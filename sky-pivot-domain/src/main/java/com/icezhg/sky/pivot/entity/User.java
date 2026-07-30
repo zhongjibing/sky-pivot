@@ -23,6 +23,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "credential_identifier", nullable = false, length = 256)
+    private String credentialIdentifier;
+
     @Lob
     @Column(name = "opaque_server_record", nullable = false, columnDefinition = "BLOB")
     private byte[] opaqueServerRecord;
