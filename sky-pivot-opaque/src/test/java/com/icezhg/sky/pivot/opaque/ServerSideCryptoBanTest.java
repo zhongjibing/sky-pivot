@@ -75,8 +75,6 @@ class ServerSideCryptoBanTest {
     void shouldNotContainAtSigningKeyConfig() throws IOException {
         StringBuilder violations = new StringBuilder();
 
-        String[] bannedConfigs = {"jwt-at-secret-hex", "at-secret", "AT_SECRET"};
-
         for (Path pkg : SERVER_PACKAGES) {
             Path dir = BACKEND_SRC.resolve(pkg);
             if (!Files.exists(dir)) {
@@ -88,7 +86,7 @@ class ServerSideCryptoBanTest {
                         .forEach(file -> {
                             try {
                                 String content = Files.readString(file, StandardCharsets.UTF_8);
-                                for (String banned : bannedConfigs) {
+                                for (String banned : ServerSideCryptoBan.BANNED_CONFIG_PATTERNS) {
                                     if (content.contains(banned)) {
                                         violations.append("\n  ")
                                                 .append(file)

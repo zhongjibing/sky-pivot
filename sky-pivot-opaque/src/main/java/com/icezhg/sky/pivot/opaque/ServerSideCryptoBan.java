@@ -23,6 +23,17 @@ public final class ServerSideCryptoBan {
             "BCryptPasswordEncoder",
     };
 
+    public static final String[] BANNED_CONFIG_PATTERNS = {
+            "at.signing",
+            "at.secret",
+            "at.private-key",
+            "access-token.signing",
+            "access-token.secret",
+            "access-token.private-key",
+            "accesstoken.signing",
+            "accesstoken.secret",
+    };
+
     private ServerSideCryptoBan() {
     }
 }
