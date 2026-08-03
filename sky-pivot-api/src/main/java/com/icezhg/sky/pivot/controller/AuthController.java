@@ -152,6 +152,34 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    @PostMapping("/token-exchange")
+    public ResponseEntity<ApiResponse<TokenExchangeResponse>> tokenExchange(
+            HttpServletRequest servletRequest) {
+
+        String authHeader = servletRequest.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Missing or invalid Authorization header"));
+        }
+
+        String token = authHeader.substring(7);
+        try {
+            var claims = sessionTokenService.verifySessionToken(token);
+            Long userId = Long.parseLong(claims.getSubject());
+            log.info("ST exchanged for userId: {}, jti: {}", userId, claims.getId());
+            return ResponseEntity.ok(ApiResponse.success(
+                    new TokenExchangeResponse(userId.toString(), claims.getId(), claims.getExpiration().toString())));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("403", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Invalid or expired session token"));
+        }
+    }
+
+    public record TokenExchangeResponse(String userId, String jti, String expiresAt) {}
+
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {

@@ -1,5 +1,7 @@
 package com.icezhg.sky.pivot.opaque.service;
 
+import com.icezhg.sky.pivot.config.redis.RedisKeyPrefix;
+import com.icezhg.sky.pivot.config.redis.RedisService;
 import com.icezhg.sky.pivot.opaque.config.HofmannPropertiesFromVault;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -17,6 +19,7 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HexFormat;
@@ -51,8 +54,10 @@ public class SessionTokenService {
 
     private final PrivateKey signingKey;
     private final PublicKey verifyKey;
+    private final RedisService redisService;
 
-    public SessionTokenService(HofmannPropertiesFromVault propsFromVault) {
+    public SessionTokenService(HofmannPropertiesFromVault propsFromVault, RedisService redisService) {
+        this.redisService = redisService;
         try {
             byte[] seed = HEX.parseHex(propsFromVault.getJwtStSecretHex());
             if (seed.length < 32) {
@@ -106,11 +111,41 @@ public class SessionTokenService {
         if (!"ST".equals(claims.get("type"))) {
             throw new SecurityException("Not a Session Token");
         }
+        String jti = claims.getId();
+        if (jti != null && isBlacklisted(jti)) {
+            throw new SecurityException("Session Token has been revoked");
+        }
         return claims;
     }
 
     public Long getUserIdFromSt(String token) {
         String subject = verifySessionToken(token).getSubject();
         return Long.parseLong(subject);
+    }
+
+    public boolean isSessionToken(String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        try {
+            Claims claims = verifySessionToken(token);
+            return "ST".equals(claims.get("type"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public void revokeSt(String jti) {
+        String blacklistKey = RedisKeyPrefix.key(RedisKeyPrefix.JWT_BLACKLIST, jti);
+        redisService.set(blacklistKey, "revoked", Duration.ofHours(2));
+        log.debug("ST jti {} added to blacklist", jti);
+    }
+
+    private boolean isBlacklisted(String jti) {
+        if (redisService == null) {
+            return false;
+        }
+        String key = RedisKeyPrefix.key(RedisKeyPrefix.JWT_BLACKLIST, jti);
+        return redisService.hasKey(key);
     }
 }
