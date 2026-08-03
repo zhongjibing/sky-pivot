@@ -43,7 +43,9 @@ public class JpaCredentialStore implements CredentialStore {
                     newUser.setRecoveryKeyHash("");
                     return newUser;
                 });
-        user.setOpaqueServerRecord(serializeRecord(record));
+        byte[] serialized = serializeRecord(record);
+        user.setOpaqueServerRecord(serialized);
+        user.setOpaqueClientRecord(serialized);
         userRepository.save(user);
         log.info("Stored OPAQUE registration record for credential: {}", credId);
     }

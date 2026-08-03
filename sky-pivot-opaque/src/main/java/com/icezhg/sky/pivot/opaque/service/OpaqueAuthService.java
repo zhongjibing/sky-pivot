@@ -2,8 +2,11 @@ package com.icezhg.sky.pivot.opaque.service;
 
 import com.codeheadsystems.hofmann.model.opaque.*;
 import com.codeheadsystems.hofmann.server.manager.HofmannOpaqueServerManager;
+import com.codeheadsystems.hofmann.server.store.CredentialStore;
+import com.codeheadsystems.rfc.opaque.model.Envelope;
 import com.codeheadsystems.rfc.opaque.model.RegistrationRecord;
 import com.icezhg.sky.pivot.entity.User;
+import com.icezhg.sky.pivot.opaque.dto.OpaqueCredentialUpdateRequest;
 import com.icezhg.sky.pivot.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,13 +24,16 @@ public class OpaqueAuthService {
     private static final Base64.Decoder B64D = Base64.getDecoder();
 
     private final HofmannOpaqueServerManager opaqueServerManager;
+    private final CredentialStore credentialStore;
     private final UserRepository userRepository;
     private final SessionTokenService sessionTokenService;
 
     public OpaqueAuthService(HofmannOpaqueServerManager opaqueServerManager,
+                             CredentialStore credentialStore,
                              UserRepository userRepository,
                              SessionTokenService sessionTokenService) {
         this.opaqueServerManager = opaqueServerManager;
+        this.credentialStore = credentialStore;
         this.userRepository = userRepository;
         this.sessionTokenService = sessionTokenService;
     }
@@ -82,19 +88,17 @@ public class OpaqueAuthService {
     }
 
     @Transactional
-    public LoginFinishResponse handleLoginFinish(AuthFinishRequest request) {
+    public LoginFinishResponse handleLoginFinish(AuthFinishRequest request, String credentialIdentifierBase64) {
         try {
             AuthFinishResponse authFinishResponse = opaqueServerManager.authFinish(request);
-            String sessionToken = authFinishResponse.token();
 
-            String credId = extractCredentialIdentifierFromToken(sessionToken);
-            User user = userRepository.findByCredentialIdentifier(credId)
+            User user = userRepository.findByCredentialIdentifier(credentialIdentifierBase64)
                     .orElseThrow(() -> new SecurityException("User not found for session"));
 
             String st = sessionTokenService.generateSessionToken(user.getId());
-            log.info("OPAQUE login completed for userId: {}, credential: {}", user.getId(), credId);
-            return new LoginFinishResponse(st, user.getId().toString(),
-                    authFinishResponse.sessionKeyBase64());
+            String sessionKeyBase64 = authFinishResponse.sessionKeyBase64();
+            log.info("OPAQUE login completed for userId: {}, credential: {}", user.getId(), credentialIdentifierBase64);
+            return new LoginFinishResponse(st, user.getId().toString(), sessionKeyBase64);
         } catch (Exception e) {
             log.debug("Invalid login finish request", e);
             throw e;
@@ -108,8 +112,32 @@ public class OpaqueAuthService {
         log.info("OPAQUE registration deleted for credential: {}", credentialIdentifierBase64);
     }
 
-    private String extractCredentialIdentifierFromToken(String libraryJwt) {
-        return "unknown";
+    @Transactional
+    public void handleCredentialUpdate(OpaqueCredentialUpdateRequest request) {
+        try {
+            String credId = request.credentialIdentifierBase64();
+            byte[] credIdBytes = B64D.decode(credId);
+
+            User user = userRepository.findByCredentialIdentifier(credId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            credentialStore.delete(credIdBytes);
+
+            RegistrationRecord newRecord = new RegistrationRecord(
+                    B64D.decode(request.clientPublicKeyBase64()),
+                    B64D.decode(request.maskingKeyBase64()),
+                    new Envelope(
+                            B64D.decode(request.envelopeNonceBase64()),
+                            B64D.decode(request.authTagBase64()))
+            );
+
+            RegistrationFinishRequest finishRequest = new RegistrationFinishRequest(credIdBytes, newRecord);
+            opaqueServerManager.registrationFinish(finishRequest);
+            log.info("OPAQUE credential updated for userId: {}, credential: {}", user.getId(), credId);
+        } catch (IllegalArgumentException e) {
+            log.debug("Invalid credential update request", e);
+            throw e;
+        }
     }
 
     public record LoginFinishResponse(String sessionToken, String userId, String sessionKeyBase64) {
