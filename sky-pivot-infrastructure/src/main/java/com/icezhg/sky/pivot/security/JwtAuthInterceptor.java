@@ -4,6 +4,8 @@ import com.icezhg.sky.pivot.common.TokenValidator;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,8 +21,12 @@ import java.util.Optional;
 @Component
 public class JwtAuthInterceptor implements HandlerInterceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthInterceptor.class);
+
     private static final String TOKEN_TYPE_ST = "\"type\":\"ST\"";
     private static final String TOKEN_TYPE_ST_ALT = "\"type\": \"ST\"";
+
+    private static final String DEVICE_ID_ATTR = "jwt_auth_device_id";
 
     private final List<TokenValidator> tokenValidators;
     private final JsonMapper objectMapper = JsonMapper.builder().build();
@@ -78,6 +84,12 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
 
         request.setAttribute(JwtAuthContext.USER_ID_ATTR, userId.get());
+
+        String deviceId = extractDeviceIdFromPayload(token);
+        if (deviceId != null) {
+            request.setAttribute(DEVICE_ID_ATTR, deviceId);
+        }
+
         return true;
     }
 
@@ -93,5 +105,32 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         } catch (IllegalArgumentException e) {
             return false;
         }
+    }
+
+    private String extractDeviceIdFromPayload(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) {
+                return null;
+            }
+            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            String payload = new String(decoded, StandardCharsets.UTF_8);
+            if (payload.contains("\"type\":\"AT\"") || payload.contains("\"type\": \"AT\"")) {
+                int didIdx = payload.indexOf("\"did\"");
+                if (didIdx >= 0) {
+                    int colonIdx = payload.indexOf(':', didIdx);
+                    if (colonIdx >= 0) {
+                        int startQuote = payload.indexOf('"', colonIdx + 1);
+                        int endQuote = payload.indexOf('"', startQuote + 1);
+                        if (startQuote >= 0 && endQuote > startQuote) {
+                            return payload.substring(startQuote + 1, endQuote);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract device ID from token payload", e);
+        }
+        return null;
     }
 }

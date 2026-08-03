@@ -10,12 +10,16 @@ import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginStartResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishRequest;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueCredentialUpdateRequest;
+import com.icezhg.sky.pivot.opaque.service.AccessTokenService;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService.LoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.service.RateLimitService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
+import com.icezhg.sky.pivot.opaque.service.RefreshTokenService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -32,13 +36,19 @@ public class AuthController {
     private final OpaqueAuthService opaqueAuthService;
     private final RateLimitService rateLimitService;
     private final SessionTokenService sessionTokenService;
+    private final AccessTokenService accessTokenService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthController(OpaqueAuthService opaqueAuthService,
                           RateLimitService rateLimitService,
-                          SessionTokenService sessionTokenService) {
+                          SessionTokenService sessionTokenService,
+                          AccessTokenService accessTokenService,
+                          RefreshTokenService refreshTokenService) {
         this.opaqueAuthService = opaqueAuthService;
         this.rateLimitService = rateLimitService;
         this.sessionTokenService = sessionTokenService;
+        this.accessTokenService = accessTokenService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @PostMapping("/register-start")
@@ -154,6 +164,7 @@ public class AuthController {
 
     @PostMapping("/token-exchange")
     public ResponseEntity<ApiResponse<TokenExchangeResponse>> tokenExchange(
+            @Valid @RequestBody TokenExchangeRequest request,
             HttpServletRequest servletRequest) {
 
         String authHeader = servletRequest.getHeader(HttpHeaders.AUTHORIZATION);
@@ -162,13 +173,25 @@ public class AuthController {
                     .body(ApiResponse.error("401", "Missing or invalid Authorization header"));
         }
 
-        String token = authHeader.substring(7);
+        String stToken = authHeader.substring(7);
         try {
-            var claims = sessionTokenService.verifySessionToken(token);
-            Long userId = Long.parseLong(claims.getSubject());
-            log.info("ST exchanged for userId: {}, jti: {}", userId, claims.getId());
+            Claims stClaims = sessionTokenService.verifySessionToken(stToken);
+            Long userId = Long.parseLong(stClaims.getSubject());
+
+            Claims atClaims = accessTokenService.verifyAccessToken(request.accessToken());
+            Long atUserId = Long.parseLong(atClaims.getSubject());
+            String atDeviceId = atClaims.get("did", String.class);
+
+            if (!userId.equals(atUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("403", "AT subject does not match ST subject"));
+            }
+
+            log.info("ST exchanged for AT: userId={}, deviceId={}, atJti={}", userId, atDeviceId, atClaims.getId());
+
             return ResponseEntity.ok(ApiResponse.success(
-                    new TokenExchangeResponse(userId.toString(), claims.getId(), claims.getExpiration().toString())));
+                    new TokenExchangeResponse(userId.toString(), atDeviceId,
+                            atClaims.getId(), atClaims.getExpiration().toString())));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("403", e.getMessage()));
@@ -178,7 +201,42 @@ public class AuthController {
         }
     }
 
-    public record TokenExchangeResponse(String userId, String jti, String expiresAt) {}
+    @PostMapping("/token/refresh")
+    public ResponseEntity<ApiResponse<TokenRefreshResponse>> tokenRefresh(
+            @Valid @RequestBody TokenRefreshRequest request,
+            HttpServletRequest servletRequest) {
+
+        String authHeader = servletRequest.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Missing or invalid Authorization header"));
+        }
+
+        String atToken = authHeader.substring(7);
+        try {
+            Claims atClaims = accessTokenService.verifyAccessToken(atToken);
+            Long userId = Long.parseLong(atClaims.getSubject());
+            String deviceId = atClaims.get("did", String.class);
+
+            var result = refreshTokenService.verifyRefreshToken(
+                    request.refreshToken(), userId, deviceId);
+
+            log.info("Refresh token rotated for userId: {}, deviceId: {}", userId, deviceId);
+            return ResponseEntity.ok(ApiResponse.success(
+                    new TokenRefreshResponse(result.newRefreshToken())));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("403", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Invalid or expired token"));
+        }
+    }
+
+    public record TokenExchangeRequest(@NotBlank String accessToken) {}
+    public record TokenExchangeResponse(String userId, String deviceId, String atJti, String atExpiresAt) {}
+    public record TokenRefreshRequest(@NotBlank String refreshToken) {}
+    public record TokenRefreshResponse(String newRefreshToken) {}
 
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
