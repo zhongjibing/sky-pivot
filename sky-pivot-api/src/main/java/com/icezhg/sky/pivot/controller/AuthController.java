@@ -9,13 +9,16 @@ import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginStartRequest;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginStartResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishRequest;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishResponse;
+import com.icezhg.sky.pivot.opaque.dto.OpaqueCredentialUpdateRequest;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService.LoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.service.RateLimitService;
+import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +31,14 @@ public class AuthController {
 
     private final OpaqueAuthService opaqueAuthService;
     private final RateLimitService rateLimitService;
+    private final SessionTokenService sessionTokenService;
 
-    public AuthController(OpaqueAuthService opaqueAuthService, RateLimitService rateLimitService) {
+    public AuthController(OpaqueAuthService opaqueAuthService,
+                          RateLimitService rateLimitService,
+                          SessionTokenService sessionTokenService) {
         this.opaqueAuthService = opaqueAuthService;
         this.rateLimitService = rateLimitService;
+        this.sessionTokenService = sessionTokenService;
     }
 
     @PostMapping("/register-start")
@@ -114,7 +121,8 @@ public class AuthController {
                         java.util.Base64.getDecoder().decode(request.clientMacBase64()))
         );
 
-        LoginFinishResponse result = opaqueAuthService.handleLoginFinish(hofmannRequest);
+        LoginFinishResponse result = opaqueAuthService.handleLoginFinish(
+                hofmannRequest, request.credentialIdentifierBase64());
         OpaqueLoginFinishResponse response = new OpaqueLoginFinishResponse(
                 result.sessionToken(), result.userId()
         );
@@ -122,9 +130,26 @@ public class AuthController {
     }
 
     @PostMapping("/credential-update")
-    public ResponseEntity<ApiResponse<Void>> credentialUpdate() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(ApiResponse.error("501", "Credential update not yet implemented"));
+    public ResponseEntity<ApiResponse<Void>> credentialUpdate(
+            @Valid @RequestBody OpaqueCredentialUpdateRequest request,
+            HttpServletRequest servletRequest) {
+
+        String authHeader = servletRequest.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Missing or invalid Authorization header"));
+        }
+
+        String token = authHeader.substring(7);
+        try {
+            sessionTokenService.getUserIdFromSt(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Invalid or expired session token"));
+        }
+
+        opaqueAuthService.handleCredentialUpdate(request);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     private String getClientIp(HttpServletRequest request) {

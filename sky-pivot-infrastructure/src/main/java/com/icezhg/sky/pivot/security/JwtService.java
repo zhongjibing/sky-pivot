@@ -1,5 +1,6 @@
 package com.icezhg.sky.pivot.security;
 
+import com.icezhg.sky.pivot.common.TokenValidator;
 import com.icezhg.sky.pivot.config.properties.JwtProperties;
 import com.icezhg.sky.pivot.exception.TokenValidationException;
 import io.jsonwebtoken.*;
@@ -11,9 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
 
 @Service
-public class JwtService {
+public class JwtService implements TokenValidator {
 
     private final SecretKey key;
     private final int miniappExpiryDays;
@@ -60,6 +62,15 @@ public class JwtService {
             return Long.parseLong(claims.getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             throw new TokenValidationException("Invalid or expired token", e);
+        }
+    }
+
+    @Override
+    public Optional<Long> tryValidate(String token) {
+        try {
+            return Optional.of(validateToken(token));
+        } catch (TokenValidationException e) {
+            return Optional.empty();
         }
     }
 }

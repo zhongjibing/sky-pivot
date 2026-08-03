@@ -1,5 +1,6 @@
 package com.icezhg.sky.pivot.security;
 
+import com.icezhg.sky.pivot.common.TokenValidator;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,14 +11,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.List;
+import java.util.Optional;
+
 @Component
 public class JwtAuthInterceptor implements HandlerInterceptor {
 
-    private final JwtService jwtService;
+    private final List<TokenValidator> tokenValidators;
     private final JsonMapper objectMapper = JsonMapper.builder().build();
 
-    public JwtAuthInterceptor(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public JwtAuthInterceptor(List<TokenValidator> tokenValidators) {
+        this.tokenValidators = tokenValidators;
     }
 
     @Override
@@ -33,8 +37,22 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
 
         String token = authHeader.substring(7);
-        Long userId = jwtService.validateToken(token);
-        request.setAttribute(JwtAuthContext.USER_ID_ATTR, userId);
+        Optional<Long> userId = tokenValidators.stream()
+                .map(v -> v.tryValidate(token))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+
+        if (userId.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write(objectMapper.writeValueAsString(
+                    ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired token")
+            ));
+            return false;
+        }
+
+        request.setAttribute(JwtAuthContext.USER_ID_ATTR, userId.get());
         return true;
     }
 }
