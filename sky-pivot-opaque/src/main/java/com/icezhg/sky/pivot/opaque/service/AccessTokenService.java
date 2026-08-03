@@ -64,6 +64,10 @@ public class AccessTokenService implements TokenValidator {
             throw new SecurityException("AT missing device ID (did claim)");
         }
 
+        if (isDeviceBlacklisted(parsed.userId, parsed.deviceId)) {
+            throw new SecurityException("Device has been revoked");
+        }
+
         Device device = deviceRepository.findByUserIdAndDeviceId(parsed.userId, parsed.deviceId)
                 .orElseThrow(() -> new SecurityException("Device not found: " + parsed.deviceId));
 
@@ -124,7 +128,18 @@ public class AccessTokenService implements TokenValidator {
     }
 
     public void revokeAllForDevice(Long userId, String deviceId) {
-        log.info("Device {} for user {} marked revoked — existing ATs will fail verification", deviceId, userId);
+        String blacklistKey = RedisKeyPrefix.key(RedisKeyPrefix.DEVICE_BLACKLIST, userId.toString(), deviceId);
+        Duration ttl = Duration.ofSeconds(AT_TTL_SECONDS + 300);
+        redisService.set(blacklistKey, "revoked", ttl);
+        log.warn("Device {} for user {} added to AT blacklist — all existing ATs invalidated", deviceId, userId);
+    }
+
+    private boolean isDeviceBlacklisted(Long userId, String deviceId) {
+        if (redisService == null) {
+            return false;
+        }
+        String key = RedisKeyPrefix.key(RedisKeyPrefix.DEVICE_BLACKLIST, userId.toString(), deviceId);
+        return redisService.hasKey(key);
     }
 
     ParsedTokenPayload parseTokenPayload(String token) {

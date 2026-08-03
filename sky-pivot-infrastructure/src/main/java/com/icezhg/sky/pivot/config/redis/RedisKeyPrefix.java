@@ -13,6 +13,15 @@ public final class RedisKeyPrefix {
     public static final String RECOVERY_CHALLENGE = "recovery:challenge";
     public static final String RECOVERY_USED = "recovery:used";
 
+    public static final String DEVICE_AUTH_TEMP_KEY = "device:auth:temp-key";
+    public static final String DEVICE_AUTH_TOTP = "device:auth:totp";
+    public static final String DEVICE_EMERGENCY = "device:emergency";
+    public static final String DEVICE_BLACKLIST = "device:blacklist";
+
+    public static final Duration TTL_DEVICE_AUTH_TEMP_KEY = Duration.ofMinutes(5);
+    public static final Duration TTL_DEVICE_AUTH_TOTP = Duration.ofSeconds(120);
+    public static final Duration TTL_DEVICE_EMERGENCY = Duration.ofHours(1);
+
     public static final String MASTER_PASSWORD_ATTEMPTS = "master-password:attempts";
 
     public static final Duration TTL_LOGIN_ATTEMPTS = Duration.ofHours(1);

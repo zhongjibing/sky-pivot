@@ -42,7 +42,10 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/pc/login/qrcode",
                         "/api/pc/login/status/**",
                         "/api/pc/login/confirm",
-                        "/api/auth/**"
+                        "/api/auth/**",
+                        "/api/devices/activate",
+                        "/api/devices/emergency-auth/**",
+                        "/api/devices/authorize/**"
                 );
         registry.addInterceptor(deviceSignatureInterceptor)
                 .addPathPatterns("/api/**")
@@ -50,7 +53,11 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/auth/**",
                         "/api/miniapp/**",
                         "/api/pc/**",
-                        "/api/actuator/**"
+                        "/api/actuator/**",
+                        "/api/devices/activate",
+                        "/api/devices/emergency-auth/**",
+                        "/api/devices/authorize/**",
+                        "/api/devices"
                 );
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/api/**");
