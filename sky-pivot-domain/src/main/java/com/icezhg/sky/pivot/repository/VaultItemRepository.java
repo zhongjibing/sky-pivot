@@ -31,4 +31,13 @@ public interface VaultItemRepository extends JpaRepository<VaultItem, Long> {
     int deletePermanentlyByDeletedAtBefore(@Param("threshold") LocalDateTime threshold);
 
     List<VaultItem> findByUserIdAndDeletedAtIsNull(Long userId);
+
+    @Query("SELECT v FROM VaultItem v WHERE v.userId = :userId AND v.deletedAt IS NULL AND v.version > :sinceVersion ORDER BY v.version ASC")
+    List<VaultItem> findByUserIdAndVersionGreaterThan(@Param("userId") Long userId, @Param("sinceVersion") long sinceVersion);
+
+    @Query("SELECT COALESCE(MAX(v.version), 0) FROM VaultItem v WHERE v.userId = :userId AND v.deletedAt IS NULL")
+    long findMaxVersionByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT v FROM VaultItem v WHERE v.userId = :userId AND v.itemId = :itemId")
+    Optional<VaultItem> findByUserIdAndItemIdAnyState(@Param("userId") Long userId, @Param("itemId") String itemId);
 }
