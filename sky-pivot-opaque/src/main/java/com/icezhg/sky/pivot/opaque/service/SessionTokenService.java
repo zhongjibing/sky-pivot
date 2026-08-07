@@ -30,6 +30,7 @@ public class SessionTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionTokenService.class);
     private static final long ST_TTL_SECONDS = 15 * 60;
+    private static final long RECOVERY_TOKEN_TTL_SECONDS = 5 * 60;
     private static final HexFormat HEX = HexFormat.of();
 
     static {
@@ -147,5 +148,45 @@ public class SessionTokenService {
         }
         String key = RedisKeyPrefix.key(RedisKeyPrefix.JWT_BLACKLIST, jti);
         return redisService.hasKey(key);
+    }
+
+    public String generateRecoveryToken(Long userId) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .header().add("alg", "EdDSA").and()
+                .subject(userId.toString())
+                .claim("type", "RECOVERY_TOKEN")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusSeconds(RECOVERY_TOKEN_TTL_SECONDS)))
+                .id(UUID.randomUUID().toString())
+                .signWith(signingKey, Jwts.SIG.EdDSA)
+                .compact();
+    }
+
+    public Claims verifyRecoveryToken(String token) {
+        Jws<Claims> jws = Jwts.parser()
+                .verifyWith(verifyKey)
+                .build()
+                .parseSignedClaims(token);
+        Claims claims = jws.getPayload();
+        if (!"RECOVERY_TOKEN".equals(claims.get("type"))) {
+            throw new SecurityException("Not a Recovery Token");
+        }
+        String jti = claims.getId();
+        if (jti != null && isBlacklisted(jti)) {
+            throw new SecurityException("Recovery Token has been revoked");
+        }
+        return claims;
+    }
+
+    public Long getUserIdFromRecoveryToken(String token) {
+        String subject = verifyRecoveryToken(token).getSubject();
+        return Long.parseLong(subject);
+    }
+
+    public void revokeRecoveryToken(String jti) {
+        String blacklistKey = RedisKeyPrefix.key(RedisKeyPrefix.JWT_BLACKLIST, jti);
+        redisService.set(blacklistKey, "revoked", Duration.ofMinutes(10));
+        log.debug("Recovery token jti {} added to blacklist", jti);
     }
 }
