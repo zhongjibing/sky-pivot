@@ -1,0 +1,2 @@
+ALTER TABLE audit_log
+    ADD COLUMN level VARCHAR(16) NOT NULL DEFAULT 'INFO' AFTER action;

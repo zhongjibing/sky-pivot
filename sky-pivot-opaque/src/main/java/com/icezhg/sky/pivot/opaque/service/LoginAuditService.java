@@ -25,6 +25,7 @@ public class LoginAuditService {
             AuditLog entry = new AuditLog();
             entry.setUserId(userId);
             entry.setAction("LOGIN_SUCCESS");
+            entry.setLevel("INFO");
             entry.setResult("SUCCESS");
             entry.setIpAddress(ipAddress);
             entry.setUserAgent(userAgent);
@@ -42,6 +43,7 @@ public class LoginAuditService {
             AuditLog entry = new AuditLog();
             entry.setUserId(userId);
             entry.setAction("LOGIN_FAILURE");
+            entry.setLevel("WARNING");
             entry.setResult("FAILURE");
             entry.setReason(reason);
             entry.setIpAddress(ipAddress);
@@ -59,6 +61,7 @@ public class LoginAuditService {
             AuditLog entry = new AuditLog();
             entry.setUserId(userId);
             entry.setAction("ACCOUNT_LOCKED");
+            entry.setLevel("CRITICAL");
             entry.setResult("LOCKED");
             entry.setReason(reason);
             entry.setIpAddress(ipAddress);

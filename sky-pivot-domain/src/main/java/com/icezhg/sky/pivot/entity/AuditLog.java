@@ -37,6 +37,9 @@ public class AuditLog implements Serializable {
     @Column(nullable = false, length = 32)
     private String action;
 
+    @Column(nullable = false, length = 16)
+    private String level = "INFO";
+
     @Column(name = "target_id", length = 64)
     private String targetId;
 
