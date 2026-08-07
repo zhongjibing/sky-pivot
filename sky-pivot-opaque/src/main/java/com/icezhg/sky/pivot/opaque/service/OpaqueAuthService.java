@@ -27,15 +27,21 @@ public class OpaqueAuthService {
     private final CredentialStore credentialStore;
     private final UserRepository userRepository;
     private final SessionTokenService sessionTokenService;
+    private final AccountLockoutService accountLockoutService;
+    private final LoginAuditService loginAuditService;
 
     public OpaqueAuthService(HofmannOpaqueServerManager opaqueServerManager,
                              CredentialStore credentialStore,
                              UserRepository userRepository,
-                             SessionTokenService sessionTokenService) {
+                             SessionTokenService sessionTokenService,
+                             AccountLockoutService accountLockoutService,
+                             LoginAuditService loginAuditService) {
         this.opaqueServerManager = opaqueServerManager;
         this.credentialStore = credentialStore;
         this.userRepository = userRepository;
         this.sessionTokenService = sessionTokenService;
+        this.accountLockoutService = accountLockoutService;
+        this.loginAuditService = loginAuditService;
     }
 
     public RegistrationStartResponse handleRegisterStart(RegistrationStartRequest request) {
@@ -70,41 +76,55 @@ public class OpaqueAuthService {
     public AuthStartResponse handleLoginStart(AuthStartRequest request) {
         try {
             String credId = request.credentialIdentifierBase64();
-            Optional<User> user = userRepository.findByCredentialIdentifier(credId);
-            if (user.isEmpty()) {
-                throw new IllegalArgumentException("User not found");
-            }
-            if (user.get().getStatus() != null && user.get().getStatus() == 2) {
+            User user = userRepository.findByCredentialIdentifier(credId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            if (user.getStatus() != null && user.getStatus() == 2) {
                 throw new IllegalArgumentException("Account has been deleted");
             }
-            if (user.get().getStatus() != null && user.get().getStatus() == 1) {
+            if (user.getStatus() != null && user.getStatus() == 1) {
                 throw new IllegalArgumentException("Account has been disabled");
             }
+
+            accountLockoutService.checkAccountLocked(user.getId());
+
             return opaqueServerManager.authStart(request);
         } catch (IllegalArgumentException e) {
             log.debug("Invalid login start request", e);
+            throw e;
+        } catch (SecurityException e) {
             throw e;
         }
     }
 
     @Transactional
     public LoginFinishResponse handleLoginFinish(AuthFinishRequest request, String credentialIdentifierBase64) {
+        User user = findUserSilently(credentialIdentifierBase64);
+        Long userId = user != null ? user.getId() : null;
+
         try {
             AuthFinishResponse authFinishResponse = opaqueServerManager.authFinish(request);
 
-            User user = userRepository.findByCredentialIdentifier(credentialIdentifierBase64)
+            User finalUser = userRepository.findByCredentialIdentifier(credentialIdentifierBase64)
                     .orElseThrow(() -> new SecurityException("User not found for session"));
 
-            String st = sessionTokenService.generateSessionToken(user.getId());
+            String st = sessionTokenService.generateSessionToken(finalUser.getId());
             String sessionKeyBase64 = authFinishResponse.sessionKeyBase64();
-            log.info("OPAQUE login completed for userId: {}, credential: {}", user.getId(), credentialIdentifierBase64);
-            return new LoginFinishResponse(st, user.getId().toString(), sessionKeyBase64);
+
+            accountLockoutService.resetAttempts(finalUser.getId());
+
+            log.info("OPAQUE login completed for userId: {}, credential: {}", finalUser.getId(), credentialIdentifierBase64);
+            return new LoginFinishResponse(st, finalUser.getId().toString(), sessionKeyBase64);
         } catch (Exception e) {
+            if (userId != null) {
+                accountLockoutService.recordFailedAttempt(userId);
+            }
             log.debug("Invalid login finish request", e);
             throw e;
         }
     }
 
+    @Transactional
     public void handleRegistrationDelete(String credentialIdentifierBase64) {
         byte[] credIdBytes = B64D.decode(credentialIdentifierBase64);
         opaqueServerManager.registrationDelete(
@@ -137,6 +157,14 @@ public class OpaqueAuthService {
         } catch (IllegalArgumentException e) {
             log.debug("Invalid credential update request", e);
             throw e;
+        }
+    }
+
+    private User findUserSilently(String credentialIdentifierBase64) {
+        try {
+            return userRepository.findByCredentialIdentifier(credentialIdentifierBase64).orElse(null);
+        } catch (Exception e) {
+            return null;
         }
     }
 

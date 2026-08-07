@@ -11,6 +11,8 @@ import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishRequest;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueCredentialUpdateRequest;
 import com.icezhg.sky.pivot.opaque.service.AccessTokenService;
+import com.icezhg.sky.pivot.opaque.service.AccountLockoutService;
+import com.icezhg.sky.pivot.opaque.service.LoginAuditService;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService;
 import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService.LoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.service.RateLimitService;
@@ -22,6 +24,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +41,23 @@ public class AuthController {
     private final SessionTokenService sessionTokenService;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
+    private final AccountLockoutService accountLockoutService;
+    private final LoginAuditService loginAuditService;
 
     public AuthController(OpaqueAuthService opaqueAuthService,
                           RateLimitService rateLimitService,
                           SessionTokenService sessionTokenService,
                           AccessTokenService accessTokenService,
-                          RefreshTokenService refreshTokenService) {
+                          RefreshTokenService refreshTokenService,
+                          AccountLockoutService accountLockoutService,
+                          LoginAuditService loginAuditService) {
         this.opaqueAuthService = opaqueAuthService;
         this.rateLimitService = rateLimitService;
         this.sessionTokenService = sessionTokenService;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
+        this.accountLockoutService = accountLockoutService;
+        this.loginAuditService = loginAuditService;
     }
 
     @PostMapping("/register-start")
@@ -94,6 +103,7 @@ public class AuthController {
             HttpServletRequest servletRequest) {
 
         String ip = getClientIp(servletRequest);
+
         if (!rateLimitService.isLoginStartAllowed(ip)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(ApiResponse.error("429", "Too many login attempts. Please try again later."));
@@ -108,22 +118,35 @@ public class AuthController {
                         java.util.Base64.getDecoder().decode(request.clientAkePublicKeyBase64()))
         );
 
-        AuthStartResponse hofmannResponse = opaqueAuthService.handleLoginStart(hofmannRequest);
-        OpaqueLoginStartResponse response = new OpaqueLoginStartResponse(
-                hofmannResponse.sessionToken(),
-                hofmannResponse.evaluatedElementBase64(),
-                hofmannResponse.maskingNonceBase64(),
-                hofmannResponse.maskedResponseBase64(),
-                hofmannResponse.serverNonceBase64(),
-                hofmannResponse.serverAkePublicKeyBase64(),
-                hofmannResponse.serverMacBase64()
-        );
-        return ResponseEntity.ok(ApiResponse.success(response));
+        try {
+            AuthStartResponse hofmannResponse = opaqueAuthService.handleLoginStart(hofmannRequest);
+            OpaqueLoginStartResponse response = new OpaqueLoginStartResponse(
+                    hofmannResponse.sessionToken(),
+                    hofmannResponse.evaluatedElementBase64(),
+                    hofmannResponse.maskingNonceBase64(),
+                    hofmannResponse.maskedResponseBase64(),
+                    hofmannResponse.serverNonceBase64(),
+                    hofmannResponse.serverAkePublicKeyBase64(),
+                    hofmannResponse.serverMacBase64()
+            );
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.LOCKED)
+                    .body(ApiResponse.error("423", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Invalid credentials"));
+        }
     }
 
     @PostMapping("/login-finish")
     public ResponseEntity<ApiResponse<OpaqueLoginFinishResponse>> loginFinish(
-            @Valid @RequestBody OpaqueLoginFinishRequest request) {
+            @Valid @RequestBody OpaqueLoginFinishRequest request,
+            HttpServletRequest servletRequest) {
+
+        String ip = getClientIp(servletRequest);
+        String userAgent = servletRequest.getHeader("User-Agent");
+        String requestId = MDC.get("requestId");
 
         AuthFinishRequest hofmannRequest = new AuthFinishRequest(
                 request.sessionToken(),
@@ -131,12 +154,19 @@ public class AuthController {
                         java.util.Base64.getDecoder().decode(request.clientMacBase64()))
         );
 
-        LoginFinishResponse result = opaqueAuthService.handleLoginFinish(
-                hofmannRequest, request.credentialIdentifierBase64());
-        OpaqueLoginFinishResponse response = new OpaqueLoginFinishResponse(
-                result.sessionToken(), result.userId()
-        );
-        return ResponseEntity.ok(ApiResponse.success(response));
+        try {
+            LoginFinishResponse result = opaqueAuthService.handleLoginFinish(
+                    hofmannRequest, request.credentialIdentifierBase64());
+            OpaqueLoginFinishResponse response = new OpaqueLoginFinishResponse(
+                    result.sessionToken(), result.userId()
+            );
+            loginAuditService.recordLoginSuccess(Long.parseLong(result.userId()), ip, userAgent, requestId);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            log.debug("Login finish failed from IP: {}", ip);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("401", "Invalid credentials"));
+        }
     }
 
     @PostMapping("/credential-update")

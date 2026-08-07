@@ -99,8 +99,10 @@ class OpaqueAuthServiceIntegrationTest {
                 rfcServer, credentialStore, jwtManager);
 
         sessionTokenService = new TestSessionTokenService();
+        AccountLockoutService accountLockoutService = mock(AccountLockoutService.class);
+        LoginAuditService loginAuditService = mock(LoginAuditService.class);
         opaqueAuthService = new OpaqueAuthService(opaqueServerManager, credentialStore,
-                userRepository, sessionTokenService);
+                userRepository, sessionTokenService, accountLockoutService, loginAuditService);
 
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
