@@ -5,6 +5,7 @@ import com.icezhg.sky.pivot.dto.SyncCheckResponse;
 import com.icezhg.sky.pivot.dto.SyncPullResponse;
 import com.icezhg.sky.pivot.dto.SyncPushRequest;
 import com.icezhg.sky.pivot.dto.SyncPushResponse;
+import com.icezhg.sky.pivot.opaque.annotation.AuditLog;
 import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
 import com.icezhg.sky.pivot.service.SyncService;
@@ -34,6 +35,7 @@ public class SyncController {
     }
 
     @PostMapping("/push")
+    @AuditLog(action = "SYNC_PUSH", targetType = "SYNC")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<SyncPushResponse>> push(
             @Valid @RequestBody SyncPushRequest request) {

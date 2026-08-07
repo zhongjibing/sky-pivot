@@ -10,6 +10,7 @@ import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginStartResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishRequest;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueLoginFinishResponse;
 import com.icezhg.sky.pivot.opaque.dto.OpaqueCredentialUpdateRequest;
+import com.icezhg.sky.pivot.opaque.annotation.AuditLog;
 import com.icezhg.sky.pivot.opaque.service.AccessTokenService;
 import com.icezhg.sky.pivot.opaque.service.AccountLockoutService;
 import com.icezhg.sky.pivot.opaque.service.LoginAuditService;
@@ -170,6 +171,7 @@ public class AuthController {
     }
 
     @PostMapping("/credential-update")
+    @AuditLog(action = "MASTER_PASSWORD_CHANGED", targetType = "ACCOUNT", level = "CRITICAL")
     public ResponseEntity<ApiResponse<Void>> credentialUpdate(
             @Valid @RequestBody OpaqueCredentialUpdateRequest request,
             HttpServletRequest servletRequest) {
@@ -193,6 +195,7 @@ public class AuthController {
     }
 
     @PostMapping("/token-exchange")
+    @AuditLog(action = "TOKEN_EXCHANGE", targetType = "AUTH")
     public ResponseEntity<ApiResponse<TokenExchangeResponse>> tokenExchange(
             @Valid @RequestBody TokenExchangeRequest request,
             HttpServletRequest servletRequest) {

@@ -2,8 +2,8 @@ package com.icezhg.sky.pivot.controller;
 
 import com.icezhg.sky.pivot.config.SyncWebSocketHandler;
 import com.icezhg.sky.pivot.dto.ApiResponse;
-import com.icezhg.sky.pivot.entity.AuditLog;
 import com.icezhg.sky.pivot.entity.Device;
+import com.icezhg.sky.pivot.opaque.annotation.AuditLog;
 import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.opaque.dto.*;
 import com.icezhg.sky.pivot.opaque.service.AccessTokenService;
@@ -12,7 +12,6 @@ import com.icezhg.sky.pivot.opaque.service.DeviceAuthorizationService.EmergencyA
 import com.icezhg.sky.pivot.opaque.service.DeviceAuthorizationService.EmergencyAuthResult;
 import com.icezhg.sky.pivot.opaque.service.DeviceService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
-import com.icezhg.sky.pivot.repository.AuditLogRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -39,20 +38,17 @@ public class DeviceController {
     private final SessionTokenService sessionTokenService;
     private final AccessTokenService accessTokenService;
     private final SyncWebSocketHandler syncWebSocketHandler;
-    private final AuditLogRepository auditLogRepository;
 
     public DeviceController(DeviceService deviceService,
                             DeviceAuthorizationService deviceAuthorizationService,
                             SessionTokenService sessionTokenService,
                             AccessTokenService accessTokenService,
-                            SyncWebSocketHandler syncWebSocketHandler,
-                            AuditLogRepository auditLogRepository) {
+                            SyncWebSocketHandler syncWebSocketHandler) {
         this.deviceService = deviceService;
         this.deviceAuthorizationService = deviceAuthorizationService;
         this.sessionTokenService = sessionTokenService;
         this.accessTokenService = accessTokenService;
         this.syncWebSocketHandler = syncWebSocketHandler;
-        this.auditLogRepository = auditLogRepository;
     }
 
     @PostMapping("/activate")
@@ -112,6 +108,7 @@ public class DeviceController {
     }
 
     @DeleteMapping("/{deviceId}")
+    @AuditLog(action = "DEVICE_REVOKED", targetType = "DEVICE", level = "CRITICAL")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> revoke(
             @PathVariable String deviceId,
@@ -123,16 +120,11 @@ public class DeviceController {
                     .body(ApiResponse.error("401", "Invalid or expired access token"));
         }
 
-        Device revokedDevice = deviceService.getDevice(userId, deviceId);
-
         deviceService.revoke(userId, deviceId);
         accessTokenService.revokeAllForDevice(userId, deviceId);
 
         syncWebSocketHandler.notifyChange(userId,
                 Map.of("type", "FORCE_LOGOUT", "deviceId", deviceId, "reason", "device_revoked"));
-
-        auditLog(revokedDevice, "DEVICE_REVOKED", deviceId, "DEVICE", "SUCCESS",
-                "Device revoked by user", getClientIp(servletRequest));
 
         log.warn("Device {} revoked for user {}", deviceId, userId);
 
@@ -178,6 +170,7 @@ public class DeviceController {
     }
 
     @PostMapping("/authorize/level2/totp")
+    @AuditLog(action = "DEVICE_AUTH_LEVEL2_TOTP", targetType = "DEVICE")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> level2ConfirmTotp(
             @Valid @RequestBody Level2AuthConfirmRequest request,
@@ -200,6 +193,7 @@ public class DeviceController {
     }
 
     @PostMapping("/authorize/level2/upload-dek")
+    @AuditLog(action = "DEVICE_AUTH_LEVEL2_DEK", targetType = "DEVICE")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> level2UploadDek(
             @Valid @RequestBody Level2AuthCompleteRequest request,
@@ -217,6 +211,7 @@ public class DeviceController {
     }
 
     @PostMapping("/authorize/level2/complete")
+    @AuditLog(action = "DEVICE_AUTH_LEVEL2_COMPLETE", targetType = "DEVICE")
     public ResponseEntity<ApiResponse<DeviceActivateResponse>> level2Complete(
             @Valid @RequestBody Level2AuthCompleteRequest request,
             HttpServletRequest servletRequest) {
@@ -289,6 +284,7 @@ public class DeviceController {
     }
 
     @PostMapping("/emergency-auth/verify")
+    @AuditLog(action = "EMERGENCY_AUTH", targetType = "DEVICE", level = "CRITICAL")
     public ResponseEntity<ApiResponse<EmergencyAuthResponse>> emergencyAuthVerify(
             @Valid @RequestBody EmergencyAuthVerifyRequest request,
             HttpServletRequest servletRequest) {
@@ -348,30 +344,4 @@ public class DeviceController {
         }
     }
 
-    private void auditLog(Device device, String action, String targetId,
-                          String targetType, String result, String reason, String ip) {
-        try {
-            AuditLog logEntry = new AuditLog();
-            logEntry.setUserId(device.getUserId());
-            logEntry.setDeviceId(device.getDeviceId());
-            logEntry.setAction(action);
-            logEntry.setTargetId(targetId);
-            logEntry.setTargetType(targetType);
-            logEntry.setIpAddress(ip);
-            logEntry.setResult(result);
-            logEntry.setReason(reason);
-            logEntry.setCreatedAt(LocalDateTime.now());
-            auditLogRepository.save(logEntry);
-        } catch (Exception e) {
-            log.warn("Failed to write audit log: {}", e.getMessage());
-        }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

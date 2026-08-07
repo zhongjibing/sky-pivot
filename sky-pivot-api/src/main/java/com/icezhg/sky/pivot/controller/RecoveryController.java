@@ -6,6 +6,7 @@ import com.icezhg.sky.pivot.dto.RecoveryChallengeResponse;
 import com.icezhg.sky.pivot.dto.RecoveryCodeResetRequest;
 import com.icezhg.sky.pivot.dto.RecoveryStartRequest;
 import com.icezhg.sky.pivot.dto.RecoveryTokenResponse;
+import com.icezhg.sky.pivot.opaque.annotation.AuditLog;
 import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.opaque.service.RecoveryService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
@@ -52,6 +53,7 @@ public class RecoveryController {
     }
 
     @PostMapping("/api/auth/recovery/start")
+    @AuditLog(action = "RECOVERY_CODE_USED", targetType = "RECOVERY", level = "CRITICAL")
     public ResponseEntity<ApiResponse<RecoveryTokenResponse>> startRecovery(
             @Valid @RequestBody RecoveryStartRequest request) {
 
@@ -92,6 +94,7 @@ public class RecoveryController {
     }
 
     @PostMapping("/api/account/recovery-code/reset")
+    @AuditLog(action = "RECOVERY_CODE_RESET", targetType = "RECOVERY", level = "CRITICAL")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> resetRecoveryCode(
             @Valid @RequestBody RecoveryCodeResetRequest request) {

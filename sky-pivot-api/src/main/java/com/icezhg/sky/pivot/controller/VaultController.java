@@ -7,6 +7,7 @@ import com.icezhg.sky.pivot.dto.VaultItemUpdateRequest;
 import com.icezhg.sky.pivot.dto.VaultListResponse;
 import com.icezhg.sky.pivot.dto.VaultTrashItemResponse;
 import com.icezhg.sky.pivot.exception.VaultException;
+import com.icezhg.sky.pivot.opaque.annotation.AuditLog;
 import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
 import com.icezhg.sky.pivot.service.VaultService;
@@ -40,6 +41,7 @@ public class VaultController {
     }
 
     @PostMapping("/items")
+    @AuditLog(action = "VAULT_ITEM_CREATE", targetType = "VAULT_ITEM")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<VaultItemResponse>> create(
             @Valid @RequestBody VaultItemCreateRequest request) {
@@ -81,6 +83,7 @@ public class VaultController {
     }
 
     @PutMapping("/items/{itemId}")
+    @AuditLog(action = "VAULT_ITEM_UPDATE", targetType = "VAULT_ITEM")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<VaultItemResponse>> update(
             @PathVariable String itemId,
@@ -103,6 +106,7 @@ public class VaultController {
     }
 
     @DeleteMapping("/items/{itemId}")
+    @AuditLog(action = "VAULT_ITEM_DELETE", targetType = "VAULT_ITEM")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable String itemId) {
@@ -128,6 +132,7 @@ public class VaultController {
     }
 
     @PostMapping("/trash/{itemId}/restore")
+    @AuditLog(action = "VAULT_ITEM_RESTORE", targetType = "VAULT_ITEM")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> restoreTrash(
             @PathVariable String itemId) {
@@ -145,6 +150,7 @@ public class VaultController {
     }
 
     @DeleteMapping("/trash/{itemId}")
+    @AuditLog(action = "VAULT_ITEM_PERMANENT_DELETE", targetType = "VAULT_ITEM")
     @RequireDeviceSignature
     public ResponseEntity<ApiResponse<Void>> permanentDelete(
             @PathVariable String itemId) {
