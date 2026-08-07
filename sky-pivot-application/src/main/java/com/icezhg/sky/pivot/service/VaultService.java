@@ -27,15 +27,19 @@ public class VaultService {
 
     private final VaultItemRepository vaultItemRepository;
     private final UserRepository userRepository;
+    private final SyncService syncService;
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
-    public VaultService(VaultItemRepository vaultItemRepository, UserRepository userRepository) {
+    public VaultService(VaultItemRepository vaultItemRepository,
+                        UserRepository userRepository,
+                        SyncService syncService) {
         this.vaultItemRepository = vaultItemRepository;
         this.userRepository = userRepository;
+        this.syncService = syncService;
     }
 
     @Transactional
-    public VaultItemResponse create(Long userId, VaultItemCreateRequest request) {
+    public VaultItemResponse create(Long userId, String deviceId, VaultItemCreateRequest request) {
         validateJsonBlob(request.encryptedBlob());
 
         if (vaultItemRepository.findByUserIdAndItemId(userId, request.itemId()).isPresent()) {
@@ -57,6 +61,8 @@ public class VaultService {
 
         user.setSyncVersion(newVersion);
         userRepository.save(user);
+
+        syncService.recordOperation(userId, deviceId, "CREATE", request.itemId(), "VAULT_ITEM", newVersion);
 
         log.debug("Vault item created: userId={}, itemId={}, version={}", userId, request.itemId(), newVersion);
 
@@ -88,7 +94,7 @@ public class VaultService {
     }
 
     @Transactional
-    public VaultItemResponse update(Long userId, String itemId, VaultItemUpdateRequest request) {
+    public VaultItemResponse update(Long userId, String deviceId, String itemId, VaultItemUpdateRequest request) {
         validateJsonBlob(request.encryptedBlob());
 
         VaultItem item = vaultItemRepository.findByUserIdAndItemId(userId, itemId)
@@ -110,13 +116,15 @@ public class VaultService {
         user.setSyncVersion(newVersion);
         userRepository.save(user);
 
+        syncService.recordOperation(userId, deviceId, "UPDATE", itemId, "VAULT_ITEM", newVersion);
+
         log.debug("Vault item updated: userId={}, itemId={}, version={}", userId, itemId, newVersion);
 
         return toResponse(item);
     }
 
     @Transactional
-    public void delete(Long userId, String itemId) {
+    public void delete(Long userId, String deviceId, String itemId) {
         VaultItem item = vaultItemRepository.findByUserIdAndItemId(userId, itemId)
                 .orElseThrow(() -> new VaultException("Vault item not found"));
 
@@ -132,6 +140,8 @@ public class VaultService {
         user.setSyncVersion(newVersion);
         userRepository.save(user);
 
+        syncService.recordOperation(userId, deviceId, "DELETE", itemId, "VAULT_ITEM", newVersion);
+
         log.debug("Vault item soft-deleted: userId={}, itemId={}, version={}", userId, itemId, newVersion);
     }
 
@@ -143,7 +153,7 @@ public class VaultService {
     }
 
     @Transactional
-    public void restoreTrash(Long userId, String itemId) {
+    public void restoreTrash(Long userId, String deviceId, String itemId) {
         VaultItem item = vaultItemRepository.findByUserIdAndItemIdAnyState(userId, itemId)
                 .orElseThrow(() -> new VaultException("Trash item not found"));
 
@@ -162,6 +172,8 @@ public class VaultService {
 
         user.setSyncVersion(newVersion);
         userRepository.save(user);
+
+        syncService.recordOperation(userId, deviceId, "RESTORE", itemId, "VAULT_ITEM", newVersion);
 
         log.debug("Vault item restored from trash: userId={}, itemId={}, version={}", userId, itemId, newVersion);
     }

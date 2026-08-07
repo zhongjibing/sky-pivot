@@ -45,9 +45,10 @@ public class VaultController {
             @Valid @RequestBody VaultItemCreateRequest request) {
 
         Long userId = JwtAuthContext.getUserId();
+        String deviceId = JwtAuthContext.getDeviceId();
 
         try {
-            VaultItemResponse result = vaultService.create(userId, request);
+            VaultItemResponse result = vaultService.create(userId, deviceId, request);
             return ResponseEntity.ok(ApiResponse.success(result));
         } catch (VaultException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -86,9 +87,10 @@ public class VaultController {
             @Valid @RequestBody VaultItemUpdateRequest request) {
 
         Long userId = JwtAuthContext.getUserId();
+        String deviceId = JwtAuthContext.getDeviceId();
 
         try {
-            VaultItemResponse result = vaultService.update(userId, itemId, request);
+            VaultItemResponse result = vaultService.update(userId, deviceId, itemId, request);
             return ResponseEntity.ok(ApiResponse.success(result));
         } catch (VaultException e) {
             if (e.getMessage().contains("Version conflict")) {
@@ -106,9 +108,10 @@ public class VaultController {
             @PathVariable String itemId) {
 
         Long userId = JwtAuthContext.getUserId();
+        String deviceId = JwtAuthContext.getDeviceId();
 
         try {
-            vaultService.delete(userId, itemId);
+            vaultService.delete(userId, deviceId, itemId);
             return ResponseEntity.ok(ApiResponse.success());
         } catch (VaultException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -130,9 +133,10 @@ public class VaultController {
             @PathVariable String itemId) {
 
         Long userId = JwtAuthContext.getUserId();
+        String deviceId = JwtAuthContext.getDeviceId();
 
         try {
-            vaultService.restoreTrash(userId, itemId);
+            vaultService.restoreTrash(userId, deviceId, itemId);
             return ResponseEntity.ok(ApiResponse.success());
         } catch (VaultException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
