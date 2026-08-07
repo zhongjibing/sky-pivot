@@ -19,6 +19,7 @@ import com.icezhg.sky.pivot.opaque.service.OpaqueAuthService.LoginFinishResponse
 import com.icezhg.sky.pivot.opaque.service.RateLimitService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
 import com.icezhg.sky.pivot.opaque.service.RefreshTokenService;
+import com.icezhg.sky.pivot.service.MasterPasswordChangedEvent;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,7 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final AccountLockoutService accountLockoutService;
     private final LoginAuditService loginAuditService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AuthController(OpaqueAuthService opaqueAuthService,
                           RateLimitService rateLimitService,
@@ -51,7 +54,8 @@ public class AuthController {
                           AccessTokenService accessTokenService,
                           RefreshTokenService refreshTokenService,
                           AccountLockoutService accountLockoutService,
-                          LoginAuditService loginAuditService) {
+                          LoginAuditService loginAuditService,
+                          ApplicationEventPublisher eventPublisher) {
         this.opaqueAuthService = opaqueAuthService;
         this.rateLimitService = rateLimitService;
         this.sessionTokenService = sessionTokenService;
@@ -59,6 +63,7 @@ public class AuthController {
         this.refreshTokenService = refreshTokenService;
         this.accountLockoutService = accountLockoutService;
         this.loginAuditService = loginAuditService;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping("/register-start")
@@ -183,14 +188,16 @@ public class AuthController {
         }
 
         String token = authHeader.substring(7);
+        Long userId;
         try {
-            sessionTokenService.getUserIdFromSt(token);
+            userId = sessionTokenService.getUserIdFromSt(token);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("401", "Invalid or expired session token"));
         }
 
         opaqueAuthService.handleCredentialUpdate(request);
+        eventPublisher.publishEvent(new MasterPasswordChangedEvent(userId));
         return ResponseEntity.ok(ApiResponse.success());
     }
 

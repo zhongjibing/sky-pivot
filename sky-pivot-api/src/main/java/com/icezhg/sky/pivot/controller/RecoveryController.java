@@ -11,10 +11,12 @@ import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.opaque.service.RecoveryService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
+import com.icezhg.sky.pivot.service.RecoveryCodeResetEvent;
 
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,10 +35,13 @@ public class RecoveryController {
 
     private final RecoveryService recoveryService;
     private final SessionTokenService sessionTokenService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public RecoveryController(RecoveryService recoveryService, SessionTokenService sessionTokenService) {
+    public RecoveryController(RecoveryService recoveryService, SessionTokenService sessionTokenService,
+                              ApplicationEventPublisher eventPublisher) {
         this.recoveryService = recoveryService;
         this.sessionTokenService = sessionTokenService;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping("/api/auth/recovery/challenge")
@@ -103,6 +108,7 @@ public class RecoveryController {
 
         try {
             recoveryService.resetRecoveryCode(userId, request);
+            eventPublisher.publishEvent(new RecoveryCodeResetEvent(userId));
             return ResponseEntity.ok(ApiResponse.success());
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

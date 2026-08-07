@@ -12,11 +12,15 @@ import com.icezhg.sky.pivot.opaque.service.DeviceAuthorizationService.EmergencyA
 import com.icezhg.sky.pivot.opaque.service.DeviceAuthorizationService.EmergencyAuthResult;
 import com.icezhg.sky.pivot.opaque.service.DeviceService;
 import com.icezhg.sky.pivot.opaque.service.SessionTokenService;
+import com.icezhg.sky.pivot.service.DeviceAuthRequestedEvent;
+import com.icezhg.sky.pivot.service.DeviceRevokedEvent;
+import com.icezhg.sky.pivot.service.EmergencyAuthUsedEvent;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,17 +42,20 @@ public class DeviceController {
     private final SessionTokenService sessionTokenService;
     private final AccessTokenService accessTokenService;
     private final SyncWebSocketHandler syncWebSocketHandler;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DeviceController(DeviceService deviceService,
                             DeviceAuthorizationService deviceAuthorizationService,
                             SessionTokenService sessionTokenService,
                             AccessTokenService accessTokenService,
-                            SyncWebSocketHandler syncWebSocketHandler) {
+                            SyncWebSocketHandler syncWebSocketHandler,
+                            ApplicationEventPublisher eventPublisher) {
         this.deviceService = deviceService;
         this.deviceAuthorizationService = deviceAuthorizationService;
         this.sessionTokenService = sessionTokenService;
         this.accessTokenService = accessTokenService;
         this.syncWebSocketHandler = syncWebSocketHandler;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping("/activate")
@@ -120,11 +127,16 @@ public class DeviceController {
                     .body(ApiResponse.error("401", "Invalid or expired access token"));
         }
 
+        Device device = deviceService.getDevice(userId, deviceId);
+        String deviceName = device.getDeviceName() != null ? device.getDeviceName() : deviceId;
+
         deviceService.revoke(userId, deviceId);
         accessTokenService.revokeAllForDevice(userId, deviceId);
 
         syncWebSocketHandler.notifyChange(userId,
                 Map.of("type", "FORCE_LOGOUT", "deviceId", deviceId, "reason", "device_revoked"));
+
+        eventPublisher.publishEvent(new DeviceRevokedEvent(userId, deviceId, deviceName));
 
         log.warn("Device {} revoked for user {}", deviceId, userId);
 
@@ -145,6 +157,9 @@ public class DeviceController {
         String requestId = deviceAuthorizationService.initLevel2Auth(
                 userId, request.tempPublicKey(), request.fingerprint());
         String fingerprint = deviceAuthorizationService.getFingerprintForRequest(requestId);
+
+        eventPublisher.publishEvent(new DeviceAuthRequestedEvent(
+                userId, requestId, "New Device", fingerprint));
 
         return ResponseEntity.ok(ApiResponse.success(new Level2AuthInitResponse(
                 requestId, fingerprint, LocalDateTime.now().plusMinutes(5).toString()
@@ -301,6 +316,14 @@ public class DeviceController {
             );
 
             log.warn("EMERGENCY_AUTH verified: deviceId={}", request.deviceId());
+
+            try {
+                Long emergencyUserId = deviceAuthorizationService.getUserIdForRequest(request.requestId());
+                eventPublisher.publishEvent(new EmergencyAuthUsedEvent(
+                        emergencyUserId, result.deviceId(), request.deviceName()));
+            } catch (Exception e) {
+                log.warn("Could not publish EmergencyAuthUsedEvent: {}", e.getMessage());
+            }
 
             return ResponseEntity.ok(ApiResponse.success(new EmergencyAuthResponse(
                     result.deviceId(),
