@@ -47,10 +47,10 @@ public final class RedisKeyPrefix {
 
     public static Duration lockoutDuration(int consecutiveLockouts) {
         return switch (consecutiveLockouts) {
-            case 0, 1 -> LOCKOUT_BASE;
-            case 2 -> LOCKOUT_STEP1;
-            case 3 -> LOCKOUT_STEP2;
-            default -> LOCKOUT_MAX;
+            case 0    -> LOCKOUT_BASE;
+            case 1    -> LOCKOUT_STEP1;
+            case 2    -> LOCKOUT_STEP2;
+            default   -> LOCKOUT_MAX;
         };
     }
 }
