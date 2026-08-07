@@ -1,4 +1,4 @@
-package com.icezhg.sky.pivot.opaque.service;
+package com.icezhg.sky.pivot.security;
 
 import com.icezhg.sky.pivot.entity.Device;
 import com.icezhg.sky.pivot.repository.DeviceRepository;

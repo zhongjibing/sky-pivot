@@ -1,4 +1,4 @@
-package com.icezhg.sky.pivot.opaque.service;
+package com.icezhg.sky.pivot.security;
 
 import com.icezhg.sky.pivot.entity.Device;
 import com.icezhg.sky.pivot.repository.DeviceRepository;
@@ -82,6 +82,49 @@ public class DeviceSignatureService {
             throw e;
         } catch (Exception e) {
             throw new SecurityException("Device signature verification error: " + e.getMessage(), e);
+        }
+    }
+
+    public void verifyContentSignature(Long userId, String deviceId, byte[] content, String signatureBase64) {
+        if (signatureBase64 == null || signatureBase64.isBlank()) {
+            throw new SecurityException("Missing device signature");
+        }
+
+        Device device = deviceRepository.findByUserIdAndDeviceId(userId, deviceId)
+                .orElseThrow(() -> new SecurityException("Device not found: " + deviceId));
+
+        if (!Boolean.TRUE.equals(device.getAuthorized())) {
+            throw new SecurityException("Device not authorized for signing");
+        }
+
+        if (Boolean.TRUE.equals(device.getRevoked())) {
+            throw new SecurityException("Device revoked, signature rejected");
+        }
+
+        try {
+            byte[] rawKey = decodePublicKeyBytes(device.getEd25519PublicKey());
+            byte[] x509Bytes = new byte[BC_X509_HEADER.length + rawKey.length];
+            System.arraycopy(BC_X509_HEADER, 0, x509Bytes, 0, BC_X509_HEADER.length);
+            System.arraycopy(rawKey, 0, x509Bytes, BC_X509_HEADER.length, rawKey.length);
+            X509EncodedKeySpec x509Spec = new X509EncodedKeySpec(x509Bytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", BouncyCastleProvider.PROVIDER_NAME);
+            PublicKey publicKey = keyFactory.generatePublic(x509Spec);
+
+            byte[] signature = B64D.decode(signatureBase64);
+
+            Signature verifier = Signature.getInstance("Ed25519", BouncyCastleProvider.PROVIDER_NAME);
+            verifier.initVerify(publicKey);
+            verifier.update(content);
+
+            if (!verifier.verify(signature)) {
+                throw new SecurityException("Device content signature verification failed");
+            }
+
+            log.debug("Device content signature verified for device: {}", deviceId);
+        } catch (SecurityException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SecurityException("Device content signature verification error: " + e.getMessage(), e);
         }
     }
 

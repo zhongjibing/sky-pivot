@@ -3,7 +3,7 @@ package com.icezhg.sky.pivot.opaque.interceptor;
 import com.icezhg.sky.pivot.dto.ApiResponse;
 import com.icezhg.sky.pivot.opaque.annotation.RequireDeviceSignature;
 import com.icezhg.sky.pivot.opaque.service.AccessTokenService;
-import com.icezhg.sky.pivot.opaque.service.DeviceSignatureService;
+import com.icezhg.sky.pivot.security.DeviceSignatureService;
 import com.icezhg.sky.pivot.security.JwtAuthContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
