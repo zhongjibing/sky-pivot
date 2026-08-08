@@ -16,6 +16,8 @@ public final class VaultSecretKeys {
     public static final String TLS_CERTIFICATE = "tls/certificate";
     public static final String TLS_PRIVATE_KEY = "tls/private-key";
 
+    public static final String BACKUP_ENCRYPTION_KEY = "backup/encryption-key";
+
     public static final String[] REQUIRED_SECRETS = {
         HOFMANN_SERVER_KEY_SEED,
         HOFMANN_OPRF_SEED,
